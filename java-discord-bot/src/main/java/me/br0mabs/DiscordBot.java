@@ -224,7 +224,7 @@ public class DiscordBot extends ListenerAdapter {
 
                 eb.addField("[tiles", "displays assortment of tiles\nex: 40m5s6z3p2z", false);
 
-                eb.addField("[hand", "enter 14 tiles, first 13 part of the hand, the last one is the one you drew\nex: 19m19p19s12345671z", false);
+                eb.addField("[hand", "enter 14 tiles, first 13 part of the hand, the last one is the one you drew, also checks if the hand is complete\nex: 19m19p19s12345671z", false);
 
                 eb.addField("[sfx <sound>", "list of sounds: `ron` `tsumo`\nex: [sfx ron", false);
 
@@ -265,7 +265,7 @@ public class DiscordBot extends ListenerAdapter {
                     processedTiles.add("tmp");
                     processedTiles = sortHand(processedTiles);
                     processedTiles.remove(processedTiles.size() - 1);
-                    if (checkWinningHandNormal((processedTiles))) {
+                    if (checkWinningHandNormal((processedTiles)) || checkThirteenOrphans(processedTiles) || checkSevenPairs(processedTiles)) {
                         event.getTextChannel().sendMessage("this is a winning hand!").queue();
                     }
                     /*EmbedBuilder eb = new EmbedBuilder();
@@ -414,15 +414,7 @@ public class DiscordBot extends ListenerAdapter {
     // ensure hand is sorted, this is for 4 sets and a pair
     // assumes no melding, which means no quads
     public static boolean checkWinningHandNormal(List<String> hand) {
-        // convert all red fives to 5p for our purposes
-        for (int i = 0; i < hand.size(); ++i) {
-            if (hand.get(i).charAt(0) == '0') {
-                String tmp = "";
-                tmp += '5';
-                tmp += hand.get(i).charAt(1);
-                hand.set(i, tmp);
-            }
-        }
+        hand = convertRedFives(hand);
         // now the hand should be sorted
         // divide hand into suits by using a hashmap
         Map<Character,List<Integer>> suits = new HashMap<>();
@@ -550,6 +542,60 @@ public class DiscordBot extends ListenerAdapter {
             tmpSuit.remove(Integer.valueOf(start)); tmpSuit.remove(Integer.valueOf(start + 1)); tmpSuit.remove(Integer.valueOf(start + 2));
         }
         return true;
+    }
+
+    public static boolean checkThirteenOrphans(List<String> hand) {
+        List<Integer> occurences = new ArrayList<>();
+        occurences.add(Collections.frequency(hand, "1m"));
+        occurences.add(Collections.frequency(hand, "9m"));
+        occurences.add(Collections.frequency(hand, "1p"));
+        occurences.add(Collections.frequency(hand, "9p"));
+        occurences.add(Collections.frequency(hand, "1s"));
+        occurences.add(Collections.frequency(hand, "9s"));
+        occurences.add(Collections.frequency(hand, "1z"));
+        occurences.add(Collections.frequency(hand, "2z"));
+        occurences.add(Collections.frequency(hand, "3z"));
+        occurences.add(Collections.frequency(hand, "4z"));
+        occurences.add(Collections.frequency(hand, "5z"));
+        occurences.add(Collections.frequency(hand, "6z"));
+        occurences.add(Collections.frequency(hand, "7z"));
+        // above must all be present
+        if (occurences.contains(0)) {
+            return false;
+        }
+        // extra tile must be one of the above
+        if (occurences.contains(2)) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean checkSevenPairs(List<String> hand) {
+        hand = convertRedFives(hand);
+        Map<String,Integer> occurences = new HashMap<String,Integer>();
+        for (int i = 0; i < hand.size(); ++i) {
+            if (occurences.containsKey(hand.get(i))) {
+                occurences.put(hand.get(i), occurences.get(hand.get(i)) + 1);
+            } else occurences.put(hand.get(i), 1);
+        }
+        if (occurences.size() != 7) return false;
+        for (String s : occurences.keySet()) {
+            if (occurences.get(s) != 2) return false;
+        }
+        return true;
+    }
+
+    public static List<String> convertRedFives(List<String> hand) {
+        // convert all red fives to 5p for our purposes
+        for (int i = 0; i < hand.size(); ++i) {
+            if (hand.get(i).charAt(0) == '0') {
+                String tmp = "";
+                tmp += '5';
+                tmp += hand.get(i).charAt(1);
+                hand.set(i, tmp);
+            }
+        }
+        return hand;
     }
 
 
