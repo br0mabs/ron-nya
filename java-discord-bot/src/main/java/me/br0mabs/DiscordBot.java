@@ -242,6 +242,7 @@ public class DiscordBot extends ListenerAdapter {
 
                 eb.addField("[trainer", "generates a random starting hand (autosorted), and allows you to draw and discard", false);
 
+                eb.addField("[tenpai", "enter a 13-tile hand and check to see if tenpai, and if so what tiles it is waiting on", false);
                 eb.setFooter("tsumo nya");
 
                 event.getTextChannel().sendMessage(" ").setEmbeds(eb.build()).complete();
@@ -343,6 +344,31 @@ public class DiscordBot extends ListenerAdapter {
                     WALLS.remove(author);
                     HANDS.remove(author);
                 } else event.getTextChannel().sendMessage("discard (`[d <tile>`) or quit (`[quit`), " + (tmpwall.size() - 14) + " tiles remaining.").queue();
+            } else if (messageSent.startsWith("[tenpai")) {
+                if (messageSent.length() < 9) {
+                    event.getTextChannel().sendMessage("invalid number of tiles").queue();
+                    return;
+                }
+                messageSent = messageSent.substring(8);
+                List<String> tiles = parseTiles(messageSent);
+                if (tiles.size() != 13) {
+                    event.getTextChannel().sendMessage("invalid number of tiles").queue();
+                    return;
+                }
+                List<String> wait = checkTenpai(tiles);
+                if (wait.isEmpty()) {
+                    event.getTextChannel().sendMessage("not in tenpai nya").queue();
+                } else {
+                    wait.add("tmp");
+                    wait = sortHand(wait);
+                    wait.remove(wait.size() - 1);
+                    event.getTextChannel().sendMessage("waiting on:").queue();
+                    StringBuilder outputMsg = new StringBuilder();
+                    for (int i = 0; i < wait.size(); ++i) {
+                        outputMsg.append("<:" + wait.get(i) + ":" + tileids.get(wait.get(i)) + ">");
+                    }
+                    event.getTextChannel().sendMessage(outputMsg).queue();
+                }
             }
         }
     }
@@ -614,6 +640,37 @@ public class DiscordBot extends ListenerAdapter {
             }
         }
         return hand;
+    }
+
+    // returns a list of tiles that the hand is waiting on (empty tenpai allowed)
+    public static List<String> checkTenpai(List<String> hand) {
+        List<String> tiles = new ArrayList<>();
+        // go through every type of tile
+        for (String s : tileids.keySet()) {
+            hand.add(s);
+            hand.add("tmp");
+            hand = sortHand(hand);
+            hand.remove(hand.size() - 1);
+            if (checkWinningHandNormal(hand) || checkSevenPairs(hand) || checkThirteenOrphans(hand)) {
+                if (s.charAt(0) == '0') {
+                    String tmp = "";
+                    tmp += "5";
+                    tmp += s.charAt(1);
+                    hand.remove(tmp);
+                } else {
+                    tiles.add(s);
+                    hand.remove(s);
+                }
+            } else {
+                if (s.charAt(0) == '0') {
+                    String tmp = "";
+                    tmp += "5";
+                    tmp += s.charAt(1);
+                    hand.remove(tmp);
+                } else hand.remove(s);
+            }
+        }
+        return tiles;
     }
 
 
