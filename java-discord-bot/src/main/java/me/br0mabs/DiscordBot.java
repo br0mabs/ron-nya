@@ -193,6 +193,19 @@ public class DiscordBot extends ListenerAdapter {
                     HANDS.remove(author);
                     return;
                 }
+                List<String> handtenpai = new ArrayList<>(hand);
+                List<String> tenpaiTiles = checkTenpai(handtenpai);
+                if (!tenpaiTiles.isEmpty()) {
+                    tenpaiTiles.add("tmp");
+                    sortHand(tenpaiTiles);
+                    tenpaiTiles.remove(tenpaiTiles.size() - 1);
+                    event.getTextChannel().sendMessage("you are in tenpai, waiting on:").queue();
+                    StringBuilder outputMsg = new StringBuilder();
+                    for (int i = 0; i < tenpaiTiles.size(); ++i) {
+                        outputMsg.append("<:" + tenpaiTiles.get(i) + ":" + tileids.get(tenpaiTiles.get(i)) + ">");
+                    }
+                    event.getTextChannel().sendMessage(outputMsg).queue();
+                }
                 String drawnTile = wall.get(wall.size() - 1);
                 wall.remove(wall.size() - 1);
                 hand.add(drawnTile);
