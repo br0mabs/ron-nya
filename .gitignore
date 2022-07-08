@@ -1,5 +1,7 @@
 # Compiled class file
 *.class
+Config.class
+Config.java
 
 # Log file
 *.log
