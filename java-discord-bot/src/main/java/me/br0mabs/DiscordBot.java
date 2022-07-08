@@ -255,10 +255,16 @@ public class DiscordBot extends ListenerAdapter {
                 if (processedTiles.get(processedTiles.size() - 1).equals("bad")) {
                     event.getTextChannel().sendMessage("tile(s) do(es) not exist").queue();
                 } else if (processedTiles.size() != 14) {
-                    event.getTextChannel().sendMessage("wrong number of tiles" + processedTiles.size()).queue();
+                    event.getTextChannel().sendMessage("wrong number of tiles").queue();
                 } else {
                     StringBuilder outputMsg = convertToHand(processedTiles);
                     event.getTextChannel().sendMessage(outputMsg).queue();
+                    processedTiles.add("tmp");
+                    processedTiles = sortHand(processedTiles);
+                    processedTiles.remove(processedTiles.size() - 1);
+                    if (checkWinningHandNormal((processedTiles))) {
+                        event.getTextChannel().sendMessage("this is a winning hand!").queue();
+                    }
                     /*EmbedBuilder eb = new EmbedBuilder();
                     eb.setTitle("Generated Hand", null);
                     eb.addField("Name cannot be longer than 256 characters.", outputMsg.toString(), false);
@@ -372,6 +378,7 @@ public class DiscordBot extends ListenerAdapter {
         return outputMsg;
     }
 
+    // does not sort the last tile into the hand
     public static List<String> sortHand(List<String> processedTiles) {
         List<String> tmp = new ArrayList<String>();
         for (int i = 0; i < processedTiles.size() - 1; ++i) {
@@ -421,7 +428,7 @@ public class DiscordBot extends ListenerAdapter {
         suits.put('s',  new ArrayList<Integer>());
         suits.put('z',  new ArrayList<Integer>());
         for (int i = 0; i < hand.size(); ++i) {
-            suits.get(hand.get(i).charAt(0)).add(Character.getNumericValue(hand.get(i).charAt(1)));
+            suits.get(hand.get(i).charAt(1)).add(Character.getNumericValue(hand.get(i).charAt(0)));
         }
         // preliminary check -> at least one pair, additionally find all possible pairs
         boolean hasPair = false;
@@ -430,6 +437,8 @@ public class DiscordBot extends ListenerAdapter {
             for (int i = 0; i < suits.get(suit).size(); ++i) {
                 int freq = Collections.frequency(suits.get(suit), suits.get(suit).get(i));
                 if (freq >= 2) {
+                    // any triplet should not function as a pair, any quad is also discounted
+                    if (freq > 2 && suit == 'z') continue;
                     hasPair = true;
                     // add pair in the format "[number][suit]"
                     String pair = "";
@@ -462,19 +471,81 @@ public class DiscordBot extends ListenerAdapter {
             pairs.clear();
             pairs.add(honourPair);
         }
-
         // iterate through all possible pairs, process all suits
         // at this point the honours are valid
-
-
-        return true;
-
+        for (int i = 0; i < pairs.size(); ++i) {
+            // remove the pair from the respective suit
+            String pair = pairs.get(i);
+            List<Integer> manzu = new ArrayList<>();
+            List<Integer> pinzu = new ArrayList<>();
+            List<Integer> souzu = new ArrayList<>();
+            for (int j = 0; j < suits.get('m').size(); ++j) {
+                manzu.add(suits.get('m').get(j));
+            }
+            for (int j = 0; j < suits.get('p').size(); ++j) {
+                pinzu.add(suits.get('p').get(j));
+            }
+            for (int j = 0; j < suits.get('s').size(); ++j) {
+                souzu.add(suits.get('s').get(j));
+            }
+            Integer num = Character.getNumericValue(pair.charAt(0));
+            if (pair.charAt(1) == 'm') {
+                manzu.remove(num); manzu.remove(num);
+            } else if (pair.charAt(1) == 'p') {
+                pinzu.remove(num); pinzu.remove(num);
+            } else if (pair.charAt(1) == 's') {
+                souzu.remove(num); souzu.remove(num);
+            }
+            // all suits are good
+            if (verifySuit(manzu) && verifySuit(pinzu) && verifySuit(souzu)) {
+                return true;
+            }
+        }
+        // otherwise return bad, nothing works
+        return false;
     }
 
-    public boolean verifySuit(List<Integer> suit) {
+    public static boolean verifySuit(List<Integer> suit) {
         // test all possible combinations of triples
+        List<Integer> triplets = new ArrayList<>();
+        for (int i = 1; i <= 9; ++i) {
+            if (Collections.frequency(suit, i) >= 3) {
+                triplets.add(i);
+            }
+        }
+        for (int i = 0; i < COMBINATION_INDICES.size(); ++i) {
+            List<Integer> comb = COMBINATION_INDICES.get(i);
+            List<Integer> tmpSuit = new ArrayList<>();
+            for (int j = 0; j < suit.size(); ++j) {
+                tmpSuit.add(suit.get(j));
+            }
+            for (int j = 0; j < comb.size(); ++j) {
+                if (comb.get(j) >= triplets.size()) {
+                    // at a point where if we haven't found yet it's too late
+                    return false;
+                }
+                // remove 3 times for triplet
+                tmpSuit.remove(tmpSuit.indexOf(triplets.get(comb.get(j))));
+                tmpSuit.remove(tmpSuit.indexOf(triplets.get(comb.get(j))));
+                tmpSuit.remove(tmpSuit.indexOf(triplets.get(comb.get(j))));
+            }
+            // check sequences now (only one has to satisfy for this to work)
+            if (checkSequences(tmpSuit)) return true;
+        }
+        // shouldn't reach here but return false anyways
+        return false;
+    }
 
-
+    // checks if we can make into sequences
+    public static boolean checkSequences(List<Integer> tmpSuit) {
+        // sequences are always groups of 3
+        if (tmpSuit.size() % 3 != 0) return false;
+        // iterate through
+        while (!tmpSuit.isEmpty()) {
+            Integer start = tmpSuit.get(0);
+            if (!tmpSuit.contains(start + 1) || !tmpSuit.contains(start + 2)) return false;
+            tmpSuit.remove(Integer.valueOf(start)); tmpSuit.remove(Integer.valueOf(start + 1)); tmpSuit.remove(Integer.valueOf(start + 2));
+        }
         return true;
     }
 
