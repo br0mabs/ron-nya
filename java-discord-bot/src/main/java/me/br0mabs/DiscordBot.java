@@ -200,10 +200,11 @@ public class DiscordBot extends ListenerAdapter {
                 StringBuilder outputMsg = convertToHand(hand);
                 event.getTextChannel().sendMessage("current hand for " + "<@" + author + ">:").queue();
                 event.getTextChannel().sendMessage(outputMsg).queue();
-                hand.add("tmp");
-                hand = sortHand(hand);
-                hand.remove(hand.size() - 1);
-                if (checkWinningHandNormal(hand) || checkThirteenOrphans(hand) || checkSevenPairs(hand)) {
+                List<String> handchecker = new ArrayList<>(hand);
+                handchecker.add("tmp");
+                handchecker = sortHand(handchecker);
+                handchecker.remove(handchecker.size() - 1);
+                if (checkWinningHandNormal(handchecker) || checkThirteenOrphans(handchecker) || checkSevenPairs(handchecker)) {
                     event.getTextChannel().sendMessage("tsumo nya! the hand is won (trainer quits automatically)").queue();
                     WALLS.remove(author);
                     HANDS.remove(author);
@@ -331,12 +332,13 @@ public class DiscordBot extends ListenerAdapter {
                 event.getTextChannel().sendMessage("opening hand for <@" + author + ">:").queue();
                 StringBuilder outputMsg = convertToHand(tmphand);
                 event.getTextChannel().sendMessage(outputMsg).queue();
-                tmphand.add("tmp");
-                tmphand = sortHand(tmphand);
-                tmphand.remove(tmphand.size() - 1);
+                List<String> tmphandchecker = new ArrayList<>(tmphand);
+                tmphandchecker.add("tmp");
+                tmphandchecker = sortHand(tmphandchecker);
+                tmphandchecker.remove(tmphandchecker.size() - 1);
                 WALLS.put(author,tmpwall);
                 HANDS.put(author,tmphand);
-                if (checkWinningHandNormal(tmphand) || checkSevenPairs(tmphand) || checkThirteenOrphans(tmphand)) {
+                if (checkWinningHandNormal(tmphandchecker) || checkSevenPairs(tmphandchecker) || checkThirteenOrphans(tmphandchecker)) {
                     event.getTextChannel().sendMessage("tsumo nya! the hand is won (trainer quits automatically)").queue();
                     WALLS.remove(author);
                     HANDS.remove(author);
