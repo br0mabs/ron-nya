@@ -24,6 +24,8 @@ public class DiscordBot extends ListenerAdapter {
     public static Map<String,List<String>> WALLS = new HashMap<String,List<String>>();
     public static Map<String,List<String>> HANDS = new HashMap<String,List<String>>();
 
+    public static List<List<Integer>> COMBINATION_INDICES = new ArrayList<>();
+
     public static void main(String[] args) throws LoginException {
 
         tileids.put("0s", "994416283296731206");
@@ -66,6 +68,71 @@ public class DiscordBot extends ListenerAdapter {
         tileids.put("5z", "994416303282585641");
         tileids.put("6z", "994416307678232646");
         tileids.put("7z", "994416314040987658");
+
+        List<Integer> tmpIndices = new ArrayList<>();
+        // empty combination (0 triples)
+        COMBINATION_INDICES.add(tmpIndices);
+
+        // 1 triple
+        tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+        // 2 triples
+        tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+        tmpIndices.add(0); tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+        // 3 triples
+        tmpIndices.add(2);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+        tmpIndices.add(2); tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.remove(tmpIndices.size() - 1);
+
+        tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+        // 4 triples
+        tmpIndices.add(3);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.remove(tmpIndices.size() - 1);
+
+        tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.remove(tmpIndices.size() - 1);
+
+        tmpIndices.add(2);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.remove(tmpIndices.size() - 1);
+
+        tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices.remove(tmpIndices.indexOf(2));
+        COMBINATION_INDICES.add(tmpIndices);
+        tmpIndices.clear();
+
+
 
         char[] suits = {'m', 'p', 's', 'z'};
         for (int i = 0; i < 4; ++i) {
@@ -335,6 +402,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     // ensure hand is sorted, this is for 4 sets and a pair
+    // assumes no melding, which means no quads
     public static boolean checkWinningHandNormal(List<String> hand) {
         // convert all red fives to 5p for our purposes
         for (int i = 0; i < hand.size(); ++i) {
@@ -373,10 +441,11 @@ public class DiscordBot extends ListenerAdapter {
         }
         if (!hasPair) return false;
 
-        // preliminary check -> no isolated terminals
+        // preliminary check -> no isolated terminals, no 4-of-a-kind (quads don't exist just yet)
         for (int i = 0; i < suits.get('z').size(); ++i) {
             int freq = Collections.frequency(suits.get('z'), suits.get('z').get(i));
             if (freq == 1) return false;
+            else if (freq == 4) return false;
         }
 
         // check that there is at most one honour pair (if there is an honour pair, that will have to be the pair of the hand)
@@ -395,10 +464,18 @@ public class DiscordBot extends ListenerAdapter {
         }
 
         // iterate through all possible pairs, process all suits
+        // at this point the honours are valid
 
 
         return true;
 
+    }
+
+    public boolean verifySuit(List<Integer> suit) {
+        // test all possible combinations of triples
+
+
+        return true;
     }
 
 
