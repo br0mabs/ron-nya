@@ -200,9 +200,18 @@ public class DiscordBot extends ListenerAdapter {
                 StringBuilder outputMsg = convertToHand(hand);
                 event.getTextChannel().sendMessage("current hand for " + "<@" + author + ">:").queue();
                 event.getTextChannel().sendMessage(outputMsg).queue();
-                event.getTextChannel().sendMessage("discard (`[d <tile>` or quit (`[quit`), " + (wall.size() - 14) + " tiles remaining.").queue();
-                WALLS.put(author, wall);
-                HANDS.put(author, hand);
+                hand.add("tmp");
+                hand = sortHand(hand);
+                hand.remove(hand.size() - 1);
+                if (checkWinningHandNormal(hand) || checkThirteenOrphans(hand) || checkSevenPairs(hand)) {
+                    event.getTextChannel().sendMessage("tsumo nya! the hand is won (trainer quits automatically)").queue();
+                    WALLS.remove(author);
+                    HANDS.remove(author);
+                } else {
+                    event.getTextChannel().sendMessage("discard (`[d <tile>` or quit (`[quit`), " + (wall.size() - 14) + " tiles remaining.").queue();
+                    WALLS.put(author, wall);
+                    HANDS.put(author, hand);
+                }
             }
 
             // [help command
@@ -319,12 +328,19 @@ public class DiscordBot extends ListenerAdapter {
                 }
                 List<String> tmphand = parseTiles(hand.toString());
                 tmphand = sortHand(tmphand);
-                WALLS.put(author,tmpwall);
-                HANDS.put(author,tmphand);
                 event.getTextChannel().sendMessage("opening hand for <@" + author + ">:").queue();
                 StringBuilder outputMsg = convertToHand(tmphand);
                 event.getTextChannel().sendMessage(outputMsg).queue();
-                event.getTextChannel().sendMessage("discard (`[d <tile>`) or quit (`[quit`), " + (tmpwall.size() - 14) + " tiles remaining.").queue();
+                tmphand.add("tmp");
+                tmphand = sortHand(tmphand);
+                tmphand.remove(tmphand.size() - 1);
+                WALLS.put(author,tmpwall);
+                HANDS.put(author,tmphand);
+                if (checkWinningHandNormal(tmphand) || checkSevenPairs(tmphand) || checkThirteenOrphans(tmphand)) {
+                    event.getTextChannel().sendMessage("tsumo nya! the hand is won (trainer quits automatically)").queue();
+                    WALLS.remove(author);
+                    HANDS.remove(author);
+                } else event.getTextChannel().sendMessage("discard (`[d <tile>`) or quit (`[quit`), " + (tmpwall.size() - 14) + " tiles remaining.").queue();
             }
         }
     }
