@@ -74,65 +74,68 @@ public class DiscordBot extends ListenerAdapter {
         COMBINATION_INDICES.add(tmpIndices);
 
         // 1 triple
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(0);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
         // 2 triples
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(1);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(0); tmpIndices.add(1);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
         // 3 triples
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(2);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(2); tmpIndices.add(0);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.remove(tmpIndices.size() - 1);
 
-        tmpIndices.add(1);
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(2); tmpIndices.add(1);
         COMBINATION_INDICES.add(tmpIndices);
 
-        tmpIndices.add(0);
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(2); tmpIndices.add(1); tmpIndices.add(0);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
         // 4 triples
+        tmpIndices = new ArrayList<>();
         tmpIndices.add(3);
         COMBINATION_INDICES.add(tmpIndices);
 
-        tmpIndices.add(0);
-        COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.remove(tmpIndices.size() - 1);
-
-        tmpIndices.add(1);
-        COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.remove(tmpIndices.size() - 1);
-
-        tmpIndices.add(2);
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(0);
         COMBINATION_INDICES.add(tmpIndices);
 
-        tmpIndices.add(0);
-        COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.remove(tmpIndices.size() - 1);
-
-        tmpIndices.add(1);
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(1);
         COMBINATION_INDICES.add(tmpIndices);
 
-        tmpIndices.add(0);
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(2);
         COMBINATION_INDICES.add(tmpIndices);
 
-        tmpIndices.remove(tmpIndices.indexOf(2));
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(2); tmpIndices.add(0);
         COMBINATION_INDICES.add(tmpIndices);
-        tmpIndices.clear();
 
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(2); tmpIndices.add(1);
+        COMBINATION_INDICES.add(tmpIndices);
 
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(1); tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
+
+        tmpIndices = new ArrayList<>();
+        tmpIndices.add(3); tmpIndices.add(2); tmpIndices.add(1); tmpIndices.add(0);
+        COMBINATION_INDICES.add(tmpIndices);
 
         char[] suits = {'m', 'p', 's', 'z'};
         for (int i = 0; i < 4; ++i) {
