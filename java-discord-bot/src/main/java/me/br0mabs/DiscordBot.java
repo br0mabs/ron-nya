@@ -334,8 +334,8 @@ public class DiscordBot extends ListenerAdapter {
         return tmp2;
     }
 
-    // ensure hand is sorted
-    public static boolean checkWinningHand(List<String> hand) {
+    // ensure hand is sorted, this is for 4 sets and a pair
+    public static boolean checkWinningHandNormal(List<String> hand) {
         // convert all red fives to 5p for our purposes
         for (int i = 0; i < hand.size(); ++i) {
             if (hand.get(i).charAt(0) == '0') {
@@ -346,7 +346,56 @@ public class DiscordBot extends ListenerAdapter {
             }
         }
         // now the hand should be sorted
-        // preliminary checks, divide hand into suits by using a hashmap
+        // divide hand into suits by using a hashmap
+        Map<Character,List<Integer>> suits = new HashMap<>();
+        suits.put('m',  new ArrayList<Integer>());
+        suits.put('p',  new ArrayList<Integer>());
+        suits.put('s',  new ArrayList<Integer>());
+        suits.put('z',  new ArrayList<Integer>());
+        for (int i = 0; i < hand.size(); ++i) {
+            suits.get(hand.get(i).charAt(0)).add(Character.getNumericValue(hand.get(i).charAt(1)));
+        }
+        // preliminary check -> at least one pair, additionally find all possible pairs
+        boolean hasPair = false;
+        List<String> pairs = new ArrayList<>();
+        for (Character suit : suits.keySet()) {
+            for (int i = 0; i < suits.get(suit).size(); ++i) {
+                int freq = Collections.frequency(suits.get(suit), suits.get(suit).get(i));
+                if (freq >= 2) {
+                    hasPair = true;
+                    // add pair in the format "[number][suit]"
+                    String pair = "";
+                    pair += suits.get(suit).get(i);
+                    pair += suit;
+                    if (!pairs.contains(pair)) pairs.add(pair);
+                }
+            }
+        }
+        if (!hasPair) return false;
+
+        // preliminary check -> no isolated terminals
+        for (int i = 0; i < suits.get('z').size(); ++i) {
+            int freq = Collections.frequency(suits.get('z'), suits.get('z').get(i));
+            if (freq == 1) return false;
+        }
+
+        // check that there is at most one honour pair (if there is an honour pair, that will have to be the pair of the hand)
+        int cnt = 0;
+        String honourPair = "";
+        for (int i = 0; i < pairs.size(); ++i) {
+            if (pairs.get(i).charAt(1) == 'z') {
+                if (cnt != 0) return false;
+                ++cnt;
+                honourPair = pairs.get(i);
+            }
+        }
+        if (cnt != 0) {
+            pairs.clear();
+            pairs.add(honourPair);
+        }
+
+        // iterate through all possible pairs, process all suits
+
 
         return true;
 
