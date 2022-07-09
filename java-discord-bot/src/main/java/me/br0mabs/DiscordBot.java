@@ -1,5 +1,13 @@
 package me.br0mabs;
 
+import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -10,6 +18,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.jetbrains.annotations.NotNull;
 
 import javax.security.auth.login.LoginException;
@@ -20,6 +29,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Long.parseLong;
+import static net.dv8tion.jda.api.Permission.ADMINISTRATOR;
+import static net.dv8tion.jda.api.Permission.VOICE_MOVE_OTHERS;
 import static net.dv8tion.jda.api.utils.MemberCachePolicy.ALL;
 
 public class DiscordBot extends ListenerAdapter {
@@ -161,6 +172,8 @@ public class DiscordBot extends ListenerAdapter {
 
         Config config = new Config();
         JDA bot = JDABuilder.createDefault(config.getToken())
+                .enableIntents(GatewayIntent.GUILD_MEMBERS)
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .setActivity(Activity.playing("mahgong sole"))
                 .addEventListeners(new DiscordBot())
                 .build();
@@ -172,8 +185,10 @@ public class DiscordBot extends ListenerAdapter {
             String messageSent = event.getMessage().getContentRaw();
 
             String author = event.getAuthor().getId();
-
             Guild guild = event.getGuild();
+            Member sender = guild.getMemberById(author);
+            final TextChannel channel = event.getTextChannel();
+
             // this means that we are going to continue using the [trainer command for this individual
             if (WALLS.containsKey(author) && (messageSent.startsWith("[d") || messageSent.startsWith("[quit"))) {
                 if (messageSent.equals("[quit")) {
@@ -263,6 +278,8 @@ public class DiscordBot extends ListenerAdapter {
                 eb.addField("[trainer", "generates a random starting hand (autosorted), and allows you to draw and discard", false);
 
                 eb.addField("[tenpai", "enter a 13-tile hand and check to see if tenpai, and if so what tiles it is waiting on", false);
+
+                eb.addField("[ronnya <@user>", "only works in vc and if u have perms :smiling_imp:", false);
                 eb.setFooter("tsumo nya");
 
                 event.getTextChannel().sendMessage(" ").setEmbeds(eb.build()).complete();
@@ -410,24 +427,54 @@ public class DiscordBot extends ListenerAdapter {
             }
             // used on user in vc, moves them to another vc (which the bot joins, and then plays ronnya sfx to them before returning them to call)
             else if (messageSent.startsWith("[ronnya")) {
+                if (!sender.hasPermission(VOICE_MOVE_OTHERS)) {
+                    event.getTextChannel().sendMessage("not enough perms nya").queue();
+                    return;
+                }
                 if (messageSent.length() < 9) {
                     event.getTextChannel().sendMessage("invalid user").queue();
                     return;
                 }
                 messageSent = messageSent.substring(8);
                 messageSent = messageSent.substring(2, messageSent.length() - 1);
-                long id = parseLong(messageSent);
-                Member member = guild.getMemberById(id);
+                long id = 0;
+                try {
+                    id = parseLong(messageSent);
+                } catch (Exception NumberFormatException){
+                    event.getTextChannel().sendMessage("invalid user").queue();
+                    return;
+                }
+                Member member;
+                try {
+                    member = guild.getMemberById(id);
+                } catch (Exception e) {
+                    event.getTextChannel().sendMessage("invalid user").queue();
+                    return;
+                }
+
+                if (messageSent.equals("993916134384476280")) {
+                    event.getTextChannel().sendMessage("i am immune nya").queue();
+                    return;
+                }
+
                 VoiceChannel destination = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
                 try {
                     guild.moveVoiceMember(member, destination).queue();
                 } catch (Exception IllegalStateException) {
-
+                    event.getTextChannel().sendMessage("user is not in vc nya").queue();
+                    return;
                 }
                 AudioChannel connectedChannel = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
                 AudioManager audioManager = event.getGuild().getAudioManager();
                 audioManager.openAudioConnection(connectedChannel);
-                //event.getGuild().getAudioManager().closeAudioConnection();
+
+                final GuildVoiceState memberVoiceState = member.getVoiceState();
+
+                PlayerManager.getInstance()
+                        .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
+
+
+                event.getGuild().getAudioManager().closeAudioConnection();
             }
         }
     }
