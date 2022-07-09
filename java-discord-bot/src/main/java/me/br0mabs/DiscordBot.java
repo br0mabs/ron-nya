@@ -3,12 +3,13 @@ package me.br0mabs;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.managers.AudioManager;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.security.auth.login.LoginException;
@@ -16,6 +17,10 @@ import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.Long.parseLong;
+import static net.dv8tion.jda.api.utils.MemberCachePolicy.ALL;
 
 public class DiscordBot extends ListenerAdapter {
 
@@ -23,10 +28,11 @@ public class DiscordBot extends ListenerAdapter {
     public static List<String> WALL_TEMPLATE = new ArrayList<String>();
     public static Map<String,List<String>> WALLS = new HashMap<String,List<String>>();
     public static Map<String,List<String>> HANDS = new HashMap<String,List<String>>();
-
     public static List<List<Integer>> COMBINATION_INDICES = new ArrayList<>();
 
-    public static void main(String[] args) throws LoginException {
+    public static long I_AM_DUMB_CHANNEL_ID = Long.parseLong("982820292881686528");
+
+    public static void main(String[] args) throws LoginException, InterruptedException {
 
         tileids.put("0s", "994416283296731206");
         tileids.put("1s", "994416286798991471");
@@ -167,6 +173,7 @@ public class DiscordBot extends ListenerAdapter {
 
             String author = event.getAuthor().getId();
 
+            Guild guild = event.getGuild();
             // this means that we are going to continue using the [trainer command for this individual
             if (WALLS.containsKey(author) && (messageSent.startsWith("[d") || messageSent.startsWith("[quit"))) {
                 if (messageSent.equals("[quit")) {
@@ -197,7 +204,7 @@ public class DiscordBot extends ListenerAdapter {
                 List<String> tenpaiTiles = checkTenpai(handtenpai);
                 if (!tenpaiTiles.isEmpty()) {
                     tenpaiTiles.add("tmp");
-                    sortHand(tenpaiTiles);
+                    tenpaiTiles = sortHand(tenpaiTiles);
                     tenpaiTiles.remove(tenpaiTiles.size() - 1);
                     event.getTextChannel().sendMessage("you are in tenpai, waiting on:").queue();
                     StringBuilder outputMsg = new StringBuilder();
@@ -249,7 +256,7 @@ public class DiscordBot extends ListenerAdapter {
 
                 eb.addField("[hand", "enter 14 tiles, first 13 part of the hand, the last one is the one you drew, also checks if the hand is complete\nex: 19m19p19s12345671z", false);
 
-                eb.addField("[sfx <sound>", "list of sounds: `ron` `tsumo`\nex: [sfx ron", false);
+                eb.addField("[sfx <sound>", "list of sounds: `ron` `tsumo` `riichi` `mangan` `haneman` `baiman` `sanbaiman` `yakuman`\nex: [sfx ron", false);
 
                 eb.addField("[generate", "generates a random starting hand (autosorted)", false);
 
@@ -311,6 +318,24 @@ public class DiscordBot extends ListenerAdapter {
                     event.getTextChannel().sendMessage(" ").addFile(file).queue();
                 } else if (sound.equals("tsumo")) {
                     File file = new File("D:\\discordbot\\audio files\\tsumonya.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("riichi")) {
+                    File file = new File("D:\\discordbot\\audio files\\riichinya.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("mangan")) {
+                    File file = new File("D:\\discordbot\\audio files\\mangan.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("haneman")) {
+                    File file = new File("D:\\discordbot\\audio files\\haneman.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("baiman")) {
+                    File file = new File("D:\\discordbot\\audio files\\baiman.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("sanbaiman")) {
+                    File file = new File("D:\\discordbot\\audio files\\sanbaiman.mp3");
+                    event.getTextChannel().sendMessage(" ").addFile(file).queue();
+                } else if (sound.equals("yakuman")) {
+                    File file = new File("D:\\discordbot\\audio files\\yakuman.mp3");
                     event.getTextChannel().sendMessage(" ").addFile(file).queue();
                 } else {
                     event.getTextChannel().sendMessage("enter a valid sound").queue();
@@ -382,6 +407,27 @@ public class DiscordBot extends ListenerAdapter {
                     }
                     event.getTextChannel().sendMessage(outputMsg).queue();
                 }
+            }
+            // used on user in vc, moves them to another vc (which the bot joins, and then plays ronnya sfx to them before returning them to call)
+            else if (messageSent.startsWith("[ronnya")) {
+                if (messageSent.length() < 9) {
+                    event.getTextChannel().sendMessage("invalid user").queue();
+                    return;
+                }
+                messageSent = messageSent.substring(8);
+                messageSent = messageSent.substring(2, messageSent.length() - 1);
+                long id = parseLong(messageSent);
+                Member member = guild.getMemberById(id);
+                VoiceChannel destination = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
+                try {
+                    guild.moveVoiceMember(member, destination).queue();
+                } catch (Exception IllegalStateException) {
+
+                }
+                AudioChannel connectedChannel = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
+                AudioManager audioManager = event.getGuild().getAudioManager();
+                audioManager.openAudioConnection(connectedChannel);
+                //event.getGuild().getAudioManager().closeAudioConnection();
             }
         }
     }
@@ -502,7 +548,7 @@ public class DiscordBot extends ListenerAdapter {
         }
         if (!hasPair) return false;
 
-        // preliminary check -> no isolated terminals, no 4-of-a-kind (quads don't exist just yet)
+        // preliminary check -> no isolated honour, no 4-of-a-kind (quads don't exist just yet)
         for (int i = 0; i < suits.get('z').size(); ++i) {
             int freq = Collections.frequency(suits.get('z'), suits.get('z').get(i));
             if (freq == 1) return false;
