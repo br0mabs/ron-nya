@@ -26,6 +26,8 @@ import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Long.parseLong;
@@ -456,14 +458,15 @@ public class DiscordBot extends ListenerAdapter {
                     event.getTextChannel().sendMessage("i am immune nya").queue();
                     return;
                 }
-
-                VoiceChannel destination = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
+                AudioChannel origin;
                 try {
-                    guild.moveVoiceMember(member, destination).queue();
-                } catch (Exception IllegalStateException) {
-                    event.getTextChannel().sendMessage("user is not in vc nya").queue();
+                    origin = member.getVoiceState().getChannel();
+                } catch (Exception NullPointerException) {
+                    event.getTextChannel().sendMessage("user is not in vc").queue();
                     return;
                 }
+                VoiceChannel destination = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
+                guild.moveVoiceMember(member, destination).queue();
                 AudioChannel connectedChannel = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
                 AudioManager audioManager = event.getGuild().getAudioManager();
                 audioManager.openAudioConnection(connectedChannel);
@@ -473,8 +476,14 @@ public class DiscordBot extends ListenerAdapter {
                 PlayerManager.getInstance()
                         .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
 
+                ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+                executorService.schedule(new Runnable() {
+                    public void run() {
+                        guild.moveVoiceMember(member, origin).queue();
+                        event.getGuild().getAudioManager().closeAudioConnection();
+                    }
+                }, 2000, TimeUnit.MILLISECONDS);
 
-                event.getGuild().getAudioManager().closeAudioConnection();
             }
         }
     }
@@ -777,6 +786,14 @@ public class DiscordBot extends ListenerAdapter {
             }
         }
         return tiles;
+    }
+
+    public static void pause() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
