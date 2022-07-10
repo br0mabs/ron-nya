@@ -469,20 +469,24 @@ public class DiscordBot extends ListenerAdapter {
                 guild.moveVoiceMember(member, destination).queue();
                 AudioChannel connectedChannel = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
                 AudioManager audioManager = event.getGuild().getAudioManager();
+
+                ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
                 audioManager.openAudioConnection(connectedChannel);
+                executorService.schedule(new Runnable() {
+                    public void run() {
+                        PlayerManager.getInstance()
+                                .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
+                    }
+                }, 1000, TimeUnit.MILLISECONDS);
 
                 final GuildVoiceState memberVoiceState = member.getVoiceState();
 
-                PlayerManager.getInstance()
-                        .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
-
-                ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
                 executorService.schedule(new Runnable() {
                     public void run() {
                         guild.moveVoiceMember(member, origin).queue();
                         event.getGuild().getAudioManager().closeAudioConnection();
                     }
-                }, 2000, TimeUnit.MILLISECONDS);
+                }, 2500, TimeUnit.MILLISECONDS);
 
             }
         }
