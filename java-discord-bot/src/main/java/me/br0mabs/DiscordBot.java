@@ -34,6 +34,7 @@ import static java.lang.Long.parseLong;
 import static net.dv8tion.jda.api.Permission.ADMINISTRATOR;
 import static net.dv8tion.jda.api.Permission.VOICE_MOVE_OTHERS;
 import static net.dv8tion.jda.api.utils.MemberCachePolicy.ALL;
+import static net.dv8tion.jda.api.utils.MemberCachePolicy.PENDING;
 
 public class DiscordBot extends ListenerAdapter {
 
@@ -42,6 +43,9 @@ public class DiscordBot extends ListenerAdapter {
     public static Map<String,List<String>> WALLS = new HashMap<String,List<String>>();
     public static Map<String,List<String>> HANDS = new HashMap<String,List<String>>();
     public static List<List<Integer>> COMBINATION_INDICES = new ArrayList<>();
+
+    public static HashMap<String,List<String>> USERS_USING_MAHJONG_HANDLE = new HashMap<>();
+    public static HashMap<String,Integer> USER_GUESSES_REMAINING = new HashMap<>();
 
     public static long I_AM_DUMB_CHANNEL_ID = Long.parseLong("982820292881686528");
 
@@ -252,6 +256,90 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
 
+            else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.startsWith("[guess")) {
+
+                // below code has the following bug: yellow emojis processed before green emojis of a same tile may be inaccurate
+                // implement a fix which checks green tiles first and then yellow, confirmed black tiles can be checked anytime
+                List<String> actualHand = USERS_USING_MAHJONG_HANDLE.get(author);
+                if (messageSent.length() < 8) {
+                    event.getTextChannel().sendMessage("invalid guess").queue();
+                    return;
+                }
+                messageSent = messageSent.substring(7);
+                List<String> tiles = parseTiles(messageSent);
+                if (tiles.get(tiles.size() - 1).equals("bad")) {
+                    event.getTextChannel().sendMessage("invalid guess").queue();
+                    return;
+                } else if (tiles.size() != 14) {
+                    event.getTextChannel().sendMessage("invalid guess").queue();
+                    return;
+                }
+                List<String> tmp = new ArrayList<>(tiles);
+                tmp = sortHand(tmp);
+                if (!tmp.equals(tiles)) {
+                    event.getTextChannel().sendMessage("sort the guess").queue();
+                    return;
+                }
+                StringBuilder userHand = convertToHand(tiles);
+                event.getTextChannel().sendMessage("<@" + author + ">:'s hand").queue();
+                event.getTextChannel().sendMessage(userHand).queue();
+                // stores the number of guesses of a tile
+                Map<String,Integer> numGuesses = new HashMap<>();
+                // will be true if user gets a yellow or a black
+                boolean failed = false;
+                // stores the emojis
+                StringBuilder result = new StringBuilder();
+                // if the tile is in the correct position, give green
+                // otherwise, give yellow if the number of the current number of the guessed tile is less than or equal the number actually present
+                for (int i = 0; i < tiles.size(); ++i) {
+                    // extra space for last guess
+                    if (i == tiles.size() - 1) {
+                        result.append("               ");
+                    }
+                    // increase number of tiles
+                    if (!numGuesses.containsKey(tiles.get(i))) {
+                        numGuesses.put(tiles.get(i), 1);
+                    } else numGuesses.put(tiles.get(i), numGuesses.get(tiles.get(i)) + 1);
+                    // green emoji
+                    if (tiles.get(i).equals(actualHand.get(i))) {
+                        result.append(":green_square:");
+                    }
+                    // yellow emoji (possible)
+                    else if (actualHand.contains(tiles.get(i))) {
+                        if (Collections.frequency(actualHand, tiles.get(i)) < numGuesses.get(tiles.get(i))) {
+                            result.append(":black_large_square:");
+                        } else {
+                            result.append(":yellow_square:");
+                        }
+                        failed = true;
+                    }
+                    // black emoji
+                    else {
+                        result.append(":black_large_square:");
+                        failed = true;
+                    }
+                }
+                event.getTextChannel().sendMessage(result).queue();
+                if (!failed) {
+                    event.getTextChannel().sendMessage("congratulations on guessing the hand nya!").queue();
+                    USER_GUESSES_REMAINING.remove(author);
+                    USERS_USING_MAHJONG_HANDLE.remove(author);
+                } else {
+                    // reduce number of guesses
+                    USER_GUESSES_REMAINING.put(author, USER_GUESSES_REMAINING.get(author) - 1);
+                    if (USER_GUESSES_REMAINING.get(author) == 0) {
+                        event.getTextChannel().sendMessage("no more guesses nya").queue();
+                        StringBuilder outputMsg = convertToHand(USERS_USING_MAHJONG_HANDLE.get(author));
+                        event.getTextChannel().sendMessage("the hand was:").queue();
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        USER_GUESSES_REMAINING.remove(author);
+                        USERS_USING_MAHJONG_HANDLE.remove(author);
+                    } else {
+                        event.getTextChannel().sendMessage("you have " + USER_GUESSES_REMAINING.get(author) + " guesses remaining nya").queue();
+                    }
+                }
+            }
+
             // [help command
             else if (messageSent.equals("[help")) {
                 //event.getTextChannel().sendMessage("commands:\n`[tile <tile> (use 0 for red 5) displays images of tiles\nex:\n`[tiles 345m`\n`[tiles 567p47z`\n`[tiles 405s6z3p").queue();
@@ -282,6 +370,9 @@ public class DiscordBot extends ListenerAdapter {
                 eb.addField("[tenpai", "enter a 13-tile hand and check to see if tenpai, and if so what tiles it is waiting on", false);
 
                 eb.addField("[ronnya <@user>", "only works in vc and if u have perms :smiling_imp:", false);
+
+                eb.addField("[mahjonghandle", "wordle but for mahjong (note: all hands are menzentsumo because no yaku implemented yet, no chiitoitsu or thirteen orphans either (but you can guess them))", false);
+
                 eb.setFooter("tsumo nya");
 
                 event.getTextChannel().sendMessage(" ").setEmbeds(eb.build()).complete();
@@ -461,12 +552,17 @@ public class DiscordBot extends ListenerAdapter {
                 AudioChannel origin;
                 try {
                     origin = member.getVoiceState().getChannel();
-                } catch (Exception NullPointerException) {
+                } catch (Exception e) {
                     event.getTextChannel().sendMessage("user is not in vc").queue();
                     return;
                 }
                 VoiceChannel destination = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
-                guild.moveVoiceMember(member, destination).queue();
+                try {
+                    guild.moveVoiceMember(member, destination).queue();
+                } catch (Exception e) {
+                    event.getTextChannel().sendMessage("user is not in vc").queue();
+                    return;
+                }
                 AudioChannel connectedChannel = guild.getVoiceChannelById(I_AM_DUMB_CHANNEL_ID);
                 AudioManager audioManager = event.getGuild().getAudioManager();
 
@@ -488,6 +584,11 @@ public class DiscordBot extends ListenerAdapter {
                     }
                 }, 2500, TimeUnit.MILLISECONDS);
 
+            } else if (messageSent.startsWith("[mahjonghandle")) {
+                List<String> generatedHand = generateWonHand();
+                USERS_USING_MAHJONG_HANDLE.put(author, generatedHand);
+                USER_GUESSES_REMAINING.put(author, 6);
+                event.getTextChannel().sendMessage("enter your first guess using command `[guess` (sorted valid hand with last tile being winning tile)\nex. 13m345p567789s77z2m\nyou have 6 guesses").queue();
             }
         }
     }
@@ -800,7 +901,67 @@ public class DiscordBot extends ListenerAdapter {
         }
     }
 
+    public static List<String> generateWonHand() {
+        List<String> tiles = new ArrayList<>(WALL_TEMPLATE);
+        List<String> wonHand = new ArrayList<>();
+        Random rand = new Random();
+        int upperbound = 100;
+        // attempt to generate a completed set
+        for (int i = 1; i <= 4; ++i) {
+            int int_random = rand.nextInt(upperbound);
+            // try to make a triple
+            if (int_random >= 85) {
+                String tile = tiles.get(rand.nextInt(tiles.size()));
+                while (Collections.frequency(tiles, tile) < 3) {
+                    tile = tiles.get(rand.nextInt(tiles.size()));
+                }
+                // triple has been formed, now we delete
+                tiles.remove(tile); tiles.remove(tile); tiles.remove(tile);
+                wonHand.add(tile); wonHand.add(tile); wonHand.add(tile);
+            }
+            // now here we do sequences (note that we cannot use honour tiles, or 8 and 9)
+            else {
+                String tile = tiles.get(rand.nextInt(tiles.size()));
+                // first part of while statement check checks for invalid sequence starters
+                // second part (if passed), checks if it is possible given number of tiles remaining
+                while ((tile.charAt(0) == '9' || tile.charAt(0) == '8' || tile.charAt(1) == 'z' || tile.charAt(0) == '0') || (!checkPossibleSequence(tile, tiles))) {
+                    tile = tiles.get(rand.nextInt(tiles.size()));
+                }
+                tiles.remove(tile); wonHand.add(tile);
+                String tmp = "";
+                tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 1) + '0');
+                tmp += tile.charAt(1);
+                tiles.remove(tmp); wonHand.add(tmp);
+                tmp = "";
+                tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 2) + '0');
+                tmp += tile.charAt(1);
+                tiles.remove(tmp); wonHand.add(tmp);
+            }
+        }
+        // now add a pair
+        String tile = tiles.get(rand.nextInt(tiles.size()));
+        while (Collections.frequency(tiles, tile) < 2) {
+            tile = tiles.get(rand.nextInt(tiles.size()));
+        }
+        tiles.remove(tile); tiles.remove(tile);
+        wonHand.add(tile); wonHand.add(tile);
+        // now we should randomize the hand and then sort the hand
+        Collections.shuffle(wonHand);
+        wonHand = sortHand(wonHand);
+        return wonHand;
+    }
 
+    public static boolean checkPossibleSequence(String tile, List<String> tiles) {
+        if (!tiles.contains(tile)) return false;
+        String tmp = "";
+        tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 1) + '0');
+        tmp += tile.charAt(1);
+        if (!tiles.contains(tmp)) return false;
+        tmp = "";
+        tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 2) + '0');
+        tmp += tile.charAt(1);
+        return (tiles.contains(tmp));
+    }
     // implement draw tile function? where we keep track of all the tiles and draw them sequentially
     // make 4 starting hands + dora doable?
     // download all pictures, map their string to downloads and then we can implement randomized hand dealing
