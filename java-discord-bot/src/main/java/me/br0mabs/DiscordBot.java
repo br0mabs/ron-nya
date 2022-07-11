@@ -257,9 +257,7 @@ public class DiscordBot extends ListenerAdapter {
             }
 
             else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.startsWith("[guess")) {
-
-                // below code has the following bug: yellow emojis processed before green emojis of a same tile may be inaccurate
-                // implement a fix which checks green tiles first and then yellow, confirmed black tiles can be checked anytime
+                
                 List<String> actualHand = USERS_USING_MAHJONG_HANDLE.get(author);
                 if (messageSent.length() < 8) {
                     event.getTextChannel().sendMessage("invalid guess").queue();
@@ -288,38 +286,40 @@ public class DiscordBot extends ListenerAdapter {
                 // will be true if user gets a yellow or a black
                 boolean failed = false;
                 // stores the emojis
-                StringBuilder result = new StringBuilder();
-                // if the tile is in the correct position, give green
-                // otherwise, give yellow if the number of the current number of the guessed tile is less than or equal the number actually present
+                List<String> result = new ArrayList<>();
+                for (int i = 0; i < tiles.size(); ++i) result.add("");
+                // if the tile is in the correct position, give green, if this tile does not exist in the hand, give black
                 for (int i = 0; i < tiles.size(); ++i) {
-                    // extra space for last guess
-                    if (i == tiles.size() - 1) {
-                        result.append("               ");
-                    }
-                    // increase number of tiles
-                    if (!numGuesses.containsKey(tiles.get(i))) {
-                        numGuesses.put(tiles.get(i), 1);
-                    } else numGuesses.put(tiles.get(i), numGuesses.get(tiles.get(i)) + 1);
-                    // green emoji
                     if (tiles.get(i).equals(actualHand.get(i))) {
-                        result.append(":green_square:");
-                    }
-                    // yellow emoji (possible)
-                    else if (actualHand.contains(tiles.get(i))) {
-                        if (Collections.frequency(actualHand, tiles.get(i)) < numGuesses.get(tiles.get(i))) {
-                            result.append(":black_large_square:");
-                        } else {
-                            result.append(":yellow_square:");
-                        }
-                        failed = true;
-                    }
-                    // black emoji
-                    else {
-                        result.append(":black_large_square:");
+                        result.set(i, ":green_square:");
+                        if (!numGuesses.containsKey(tiles.get(i))) {
+                            numGuesses.put(tiles.get(i), 1);
+                        } else numGuesses.put(tiles.get(i), numGuesses.get(tiles.get(i)) + 1);
+                    } else if (!actualHand.contains(tiles.get(i))) {
+                        result.set(i, ":black_large_square:");
                         failed = true;
                     }
                 }
-                event.getTextChannel().sendMessage(result).queue();
+                // process yellow
+                for (int i = 0; i < tiles.size(); ++i) {
+                    if (!tiles.get(i).equals(actualHand.get(i)) && actualHand.contains(tiles.get(i))) {
+                        failed = true;
+                        if (!numGuesses.containsKey(tiles.get(i))) {
+                            numGuesses.put(tiles.get(i), 1);
+                        } else numGuesses.put(tiles.get(i), numGuesses.get(tiles.get(i)) + 1);
+                        if (Collections.frequency(actualHand, tiles.get(i)) < numGuesses.get(tiles.get(i))) {
+                            result.set(i, ":black_large_square:");
+                        } else result.set(i, ":yellow_square:");
+                    }
+                }
+                StringBuilder resultMsg = new StringBuilder();
+                for (int i = 0; i < result.size(); ++i) {
+                    if (i == result.size() - 1) {
+                        resultMsg.append("               ");
+                    }
+                    resultMsg.append(result.get(i));
+                }
+                event.getTextChannel().sendMessage(resultMsg).queue();
                 if (!failed) {
                     event.getTextChannel().sendMessage("congratulations on guessing the hand nya!").queue();
                     USER_GUESSES_REMAINING.remove(author);
