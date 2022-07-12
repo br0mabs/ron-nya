@@ -256,8 +256,8 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
 
-            else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.startsWith("[guess")) {
-                
+            else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.start    sWith("[guess")) {
+
                 List<String> actualHand = USERS_USING_MAHJONG_HANDLE.get(author);
                 if (messageSent.length() < 8) {
                     event.getTextChannel().sendMessage("invalid guess").queue();
@@ -421,6 +421,7 @@ public class DiscordBot extends ListenerAdapter {
             else if (messageSent.startsWith("[sfx")) {
                 if (messageSent.length() < 6) {
                     event.getTextChannel().sendMessage("enter a valid sound").queue();
+                    return;
                 }
                 String sound = messageSent.substring(5);
                 if (sound.equals("ron")) {
