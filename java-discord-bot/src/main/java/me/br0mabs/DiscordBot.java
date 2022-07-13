@@ -1,5 +1,6 @@
 package me.br0mabs;
 
+import com.iwebpp.crypto.TweetNaclFast;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -40,12 +41,27 @@ public class DiscordBot extends ListenerAdapter {
 
     public static Map<String,String> tileids = new HashMap<String,String>();
     public static List<String> WALL_TEMPLATE = new ArrayList<String>();
+    public static List<String> WALL_TEMPLATE_NO_RED_FIVES = new ArrayList<String>();
     public static Map<String,List<String>> WALLS = new HashMap<String,List<String>>();
     public static Map<String,List<String>> HANDS = new HashMap<String,List<String>>();
     public static List<List<Integer>> COMBINATION_INDICES = new ArrayList<>();
 
     public static HashMap<String,List<String>> USERS_USING_MAHJONG_HANDLE = new HashMap<>();
     public static HashMap<String,Integer> USER_GUESSES_REMAINING = new HashMap<>();
+
+    // defense sim stuff
+    public static HashMap<String,List<String>> OWN_HAND = new HashMap<>();
+    public static HashMap<String,List<String>> RIICHI_HAND = new HashMap<>();
+    public static HashMap<String,List<String>> PLAYER_ACROSS_HAND = new HashMap<>();
+    public static HashMap<String,List<String>> PLAYER_RIGHT_HAND = new HashMap<>();
+
+    public static HashMap<String,List<String>> OWN_DISCARD_PILE = new HashMap<>();
+    public static HashMap<String,List<String>> RIICHI_DISCARD_PILE = new HashMap<>();
+    public static HashMap<String,List<String>> PLAYER_ACROSS_DISCARD_PILE = new HashMap<>();
+    public static HashMap<String,List<String>> PLAYER_RIGHT_DISCARD_PILE = new HashMap<>();
+
+    public static HashMap<String,List<String>> DEFENSE_WALL = new HashMap<>();
+    public static HashMap<String,List<String>> TENPAI_TILES = new HashMap<>();
 
     public static long I_AM_DUMB_CHANNEL_ID = Long.parseLong("982820292881686528");
 
@@ -169,12 +185,16 @@ public class DiscordBot extends ListenerAdapter {
                     tmp += (char) (j + '0');
                     tmp += suits[i];
                     WALL_TEMPLATE.add(tmp);
+                    WALL_TEMPLATE_NO_RED_FIVES.add(tmp);
                 }
             }
         }
         WALL_TEMPLATE.add("0m");
         WALL_TEMPLATE.add("0p");
         WALL_TEMPLATE.add("0s");
+        WALL_TEMPLATE_NO_RED_FIVES.add("5m");
+        WALL_TEMPLATE_NO_RED_FIVES.add("5p");
+        WALL_TEMPLATE_NO_RED_FIVES.add("5s");
 
         Config config = new Config();
         JDA bot = JDABuilder.createDefault(config.getToken())
@@ -256,7 +276,7 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
 
-            else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.start    sWith("[guess")) {
+            else if (USERS_USING_MAHJONG_HANDLE.containsKey(author) && messageSent.startsWith("[guess")) {
 
                 List<String> actualHand = USERS_USING_MAHJONG_HANDLE.get(author);
                 if (messageSent.length() < 8) {
@@ -340,6 +360,196 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
 
+            // defense trainer continuation
+            else if (OWN_HAND.containsKey(author) && (messageSent.startsWith("[quit") || messageSent.startsWith("[d"))) {
+                if (messageSent.startsWith("[quit")) {
+                    event.getTextChannel().sendMessage("quit the defense simulator nya").queue();
+                    clearDefenseSession(author);
+                    return;
+                } else {
+                    if (messageSent.length() < 4) {
+                        event.getTextChannel().sendMessage("enter a valid tile to discard (`[d <tile>`), or type \"[quit\"!").queue();
+                        return;
+                    }
+                    messageSent = messageSent.substring(3);
+                    if (!WALL_TEMPLATE_NO_RED_FIVES.contains(messageSent)) {
+                        event.getTextChannel().sendMessage("enter a valid tile to discard (`[d <tile>`), or type \"[quit\"!").queue();
+                        return;
+                    }
+                    if (!OWN_HAND.get(author).contains(messageSent)) {
+                        event.getTextChannel().sendMessage("enter a valid tile to discard (`[d <tile>`), or type \"[quit\"!").queue();
+                        return;
+                    }
+                    List<String> ownHand = OWN_HAND.get(author);
+                    List<String> riichiHand = RIICHI_HAND.get(author);
+                    List<String> playerRightHand = PLAYER_RIGHT_HAND.get(author);
+                    List<String> playerAcrossHand = PLAYER_ACROSS_HAND.get(author);
+                    List<String> ownDiscards = OWN_DISCARD_PILE.get(author);
+                    List<String> riichiDiscards = RIICHI_DISCARD_PILE.get(author);
+                    List<String> rightDiscards = PLAYER_RIGHT_DISCARD_PILE.get(author);
+                    List<String> acrossDiscards = PLAYER_ACROSS_DISCARD_PILE.get(author);
+                    List<String> wall = DEFENSE_WALL.get(author);
+                    List<String> tenpaiTiles = TENPAI_TILES.get(author);
+                    event.getTextChannel().sendMessage("you discard").queue();
+                    event.getTextChannel().sendMessage("<:" + messageSent + ":" + tileids.get(messageSent) + ">").queue();
+                    ownHand.remove(messageSent);
+                    ownDiscards.add(messageSent);
+                    OWN_DISCARD_PILE.put(author, ownDiscards);
+                    // if your discard got you ronned
+                    if (tenpaiTiles.contains(messageSent)) {
+                        event.getTextChannel().sendMessage("you got ronned L bozo lmao nya").queue();
+                        event.getTextChannel().sendMessage("riichi'ers hand:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically. better luck next time nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // sort your own hand
+                    ownHand.add("tmp");
+                    ownHand = sortHand(ownHand);
+                    ownHand.remove(ownHand.size() - 1);
+                    // check for empty wall
+                    if (wall.isEmpty()) {
+                        event.getTextChannel().sendMessage("no more tiles in wall, successful defense nya!\nriichi hand was:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("waiting on:").queue();
+                        outputMsg = convertToTileSequence(tenpaiTiles);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // opponent on the right draws
+                    playerRightHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                    // opponent on the right discards
+                    String rightPlayerDiscard = getDefenseDiscard(author, playerRightHand);
+                    event.getTextChannel().sendMessage("right player discards").queue();
+                    event.getTextChannel().sendMessage("<:" + rightPlayerDiscard + ":" + tileids.get(rightPlayerDiscard) + ">").queue();
+                    playerRightHand.remove(rightPlayerDiscard);
+                    rightDiscards.add(rightPlayerDiscard);
+                    PLAYER_RIGHT_DISCARD_PILE.put(author, rightDiscards);
+                    // if the player gets ronned
+                    if (tenpaiTiles.contains(rightPlayerDiscard)) {
+                        event.getTextChannel().sendMessage("right player got ronned L bozo lmao nya").queue();
+                        event.getTextChannel().sendMessage("riichi'ers hand:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically. troll nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // if the tile passes (sort the hand)
+                    playerRightHand.add("tmp");
+                    playerRightHand = sortHand(playerRightHand);
+                    playerRightHand.remove(playerRightHand.size() - 1);
+                    // check for empty wall
+                    if (wall.isEmpty()) {
+                        event.getTextChannel().sendMessage("no more tiles in wall, successful defense nya!\nriichi hand was:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("waiting on:").queue();
+                        outputMsg = convertToTileSequence(tenpaiTiles);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // opponent across draws
+                    playerAcrossHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                    // opponent across discards
+                    String acrossPlayerDiscard = getDefenseDiscard(author, playerAcrossHand);
+                    event.getTextChannel().sendMessage("across player discards").queue();
+                    event.getTextChannel().sendMessage("<:" + acrossPlayerDiscard + ":" + tileids.get(acrossPlayerDiscard) + ">").queue();
+                    playerAcrossHand.remove(acrossPlayerDiscard);
+                    acrossDiscards.add(acrossPlayerDiscard);
+                    PLAYER_ACROSS_DISCARD_PILE.put(author, acrossDiscards);
+                    // if the player gets ronned
+                    if (tenpaiTiles.contains(acrossPlayerDiscard)) {
+                        event.getTextChannel().sendMessage("across player got ronned L bozo lmao nya").queue();
+                        event.getTextChannel().sendMessage("riichi'ers hand:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically. troll nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // if the tile passes (sort the hand)
+                    playerAcrossHand.add("tmp");
+                    playerAcrossHand = sortHand(playerAcrossHand);
+                    playerAcrossHand.remove(playerAcrossHand.size() - 1);
+                    // check for empty wall
+                    if (wall.isEmpty()) {
+                        event.getTextChannel().sendMessage("no more tiles in wall, successful defense nya!\nriichi hand was:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("waiting on:").queue();
+                        outputMsg = convertToTileSequence(tenpaiTiles);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // riichi'er draws
+                    riichiHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                    // check if it wins
+                    List<String> checkWinHand = new ArrayList<>(riichiHand);
+                    checkWinHand.add("tmp");
+                    checkWinHand = sortHand(checkWinHand);
+                    checkWinHand.remove(checkWinHand.size() - 1);
+                    // hand is generated to only be normal 4 sets and 1 pair
+                    if (checkWinningHandNormal(checkWinHand)) {
+                        event.getTextChannel().sendMessage("tsumo nya! riichi'er won, but you didn't deal nya :sunglasses:").queue();
+                        StringBuilder outputMsg = convertToHand(riichiHand);
+                        event.getTextChannel().sendMessage("riichi'er's hand:").queue();
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // if no win, discard tile that was drew
+                    event.getTextChannel().sendMessage("riichi (left) player discards").queue();
+                    event.getTextChannel().sendMessage("<:" + riichiHand.get(riichiHand.size() - 1) + ":" + tileids.get(riichiHand.get(riichiHand.size() - 1)) + ">").queue();
+                    riichiDiscards.add(riichiHand.get(riichiHand.size() - 1));
+                    RIICHI_DISCARD_PILE.put(author, riichiDiscards);
+                    riichiHand.remove(riichiHand.size() - 1);
+                    // check for empty wall
+                    if (wall.isEmpty()) {
+                        event.getTextChannel().sendMessage("no more tiles in wall, successful defense nya!\nriichi hand was:").queue();
+                        StringBuilder outputMsg = convertToTileSequence(riichiHand);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("waiting on:").queue();
+                        outputMsg = convertToTileSequence(tenpaiTiles);
+                        event.getTextChannel().sendMessage(outputMsg).queue();
+                        event.getTextChannel().sendMessage("the simulator quits automatically nya").queue();
+                        clearDefenseSession(author);
+                        return;
+                    }
+                    // you draw once again
+                    ownHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                    event.getTextChannel().sendMessage("your hand:").queue();
+                    StringBuilder ownHandParsed = convertToHand(ownHand);
+                    event.getTextChannel().sendMessage(ownHandParsed).queue();
+                    event.getTextChannel().sendMessage("`[quit` to quit or `[d <tile>` to discard.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
+
+                    // update everything in the map
+                    OWN_HAND.put(author, ownHand);
+                    RIICHI_HAND.put(author, riichiHand);
+                    PLAYER_ACROSS_HAND.put(author, playerAcrossHand);
+                    PLAYER_RIGHT_HAND.put(author, playerRightHand);
+                    OWN_DISCARD_PILE.put(author, ownDiscards);
+                    RIICHI_DISCARD_PILE.put(author, riichiDiscards);
+                    PLAYER_ACROSS_DISCARD_PILE.put(author, acrossDiscards);
+                    PLAYER_RIGHT_DISCARD_PILE.put(author, rightDiscards);
+                    DEFENSE_WALL.put(author, wall);
+                    TENPAI_TILES.put(author, tenpaiTiles);
+                }
+            }
             // [help command
             else if (messageSent.equals("[help")) {
                 //event.getTextChannel().sendMessage("commands:\n`[tile <tile> (use 0 for red 5) displays images of tiles\nex:\n`[tiles 345m`\n`[tiles 567p47z`\n`[tiles 405s6z3p").queue();
@@ -486,13 +696,14 @@ public class DiscordBot extends ListenerAdapter {
                 tmphandchecker.add("tmp");
                 tmphandchecker = sortHand(tmphandchecker);
                 tmphandchecker.remove(tmphandchecker.size() - 1);
-                WALLS.put(author,tmpwall);
-                HANDS.put(author,tmphand);
+                WALLS.put(author, tmpwall);
+                HANDS.put(author, tmphand);
                 if (checkWinningHandNormal(tmphandchecker) || checkSevenPairs(tmphandchecker) || checkThirteenOrphans(tmphandchecker)) {
                     event.getTextChannel().sendMessage("tsumo nya! the hand is won (trainer quits automatically)").queue();
                     WALLS.remove(author);
                     HANDS.remove(author);
-                } else event.getTextChannel().sendMessage("discard (`[d <tile>`) or quit (`[quit`), " + (tmpwall.size() - 14) + " tiles remaining.").queue();
+                } else
+                    event.getTextChannel().sendMessage("discard (`[d <tile>`) or quit (`[quit`), " + (tmpwall.size() - 14) + " tiles remaining.").queue();
             } else if (messageSent.startsWith("[tenpai")) {
                 if (messageSent.length() < 9) {
                     event.getTextChannel().sendMessage("invalid number of tiles").queue();
@@ -534,7 +745,7 @@ public class DiscordBot extends ListenerAdapter {
                 long id = 0;
                 try {
                     id = parseLong(messageSent);
-                } catch (Exception NumberFormatException){
+                } catch (Exception NumberFormatException) {
                     event.getTextChannel().sendMessage("invalid user").queue();
                     return;
                 }
@@ -590,6 +801,118 @@ public class DiscordBot extends ListenerAdapter {
                 USERS_USING_MAHJONG_HANDLE.put(author, generatedHand);
                 USER_GUESSES_REMAINING.put(author, 6);
                 event.getTextChannel().sendMessage("enter your first guess using command `[guess` (sorted valid hand with last tile being winning tile)\nex. 13m345p567789s77z2m\nyou have 6 guesses").queue();
+            }
+            // simulator for defense setup
+            // remember to consider red fives as normal fives when discarded
+            else if (messageSent.startsWith("[defensesim")) {
+                // generate riichi user's hand
+                List<String> wonHand = generateWonHand();
+                List<String> wall = new ArrayList<>(WALL_TEMPLATE_NO_RED_FIVES);
+                Collections.shuffle(wall);
+                wonHand.remove(wonHand.size() - 1);
+                // now we have to remove all these tiles from the wall
+                for (int i = 0; i < wonHand.size(); ++i) {
+                    wall.remove(wonHand.get(i));
+                }
+                List<String> checkTenpaiHand = new ArrayList<>(wonHand);
+                // calculate which tiles are tenpai
+                List<String> tenpaiTiles = checkTenpai(checkTenpaiHand);
+                // fill in opponent's hands
+                List<String> playerAcrossHand = new ArrayList<>();
+                for (int i = 0; i < 13; ++i) {
+                    playerAcrossHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                List<String> playerRightHand = new ArrayList<>();
+                for (int i = 0; i < 13; ++i) {
+                    playerRightHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                // fill in your hand
+                List<String> ownHand = new ArrayList<>();
+                for (int i = 0; i < 13; ++i) {
+                    ownHand.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                // fill in discards for riichi'er
+                List<String> furitenDiscards = new ArrayList<>();
+                List<String> riichiDiscards = new ArrayList<>();
+                while (riichiDiscards.size() < 6) {
+                    String tile = wall.get(wall.size() - 1);
+                    wall.remove(wall.size() - 1);
+                    if (tenpaiTiles.contains(tile)) {
+                        furitenDiscards.add(tile);
+                    } else {
+                        riichiDiscards.add(tile);
+                    }
+                }
+                // add back any extra tiles that would have made them furiten
+                for (String tile : furitenDiscards) {
+                    wall.add(tile);
+                }
+                // shuffle the wall, to get rid of the order when putting the tiles back
+                Collections.shuffle(wall);
+                // discard tiles for opponents
+                List<String> acrossDiscards = new ArrayList<>();
+                List<String> rightDiscards = new ArrayList<>();
+                for (int i = 0; i < 6; ++i) {
+                    acrossDiscards.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                for (int i = 0; i < 6; ++i) {
+                    rightDiscards.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                // discard tiles for yourself
+                List<String> ownDiscards = new ArrayList<>();
+                for (int i = 0; i < 6; ++i) {
+                    ownDiscards.add(wall.get(wall.size() - 1));
+                    wall.remove(wall.size() - 1);
+                }
+                // remove the dead wall
+                for (int i = 0; i < 14; ++i) {
+                    wall.remove(wall.get(wall.size() - 1));
+                }
+                // draw a tile
+                ownHand.add(wall.get(wall.size() - 1));
+                wall.remove(wall.size() - 1);
+                ownHand = sortHand(ownHand);
+                OWN_HAND.put(author, ownHand);
+                RIICHI_HAND.put(author, wonHand);
+                PLAYER_ACROSS_HAND.put(author, playerAcrossHand);
+                PLAYER_RIGHT_HAND.put(author, playerRightHand);
+                OWN_DISCARD_PILE.put(author, ownDiscards);
+                RIICHI_DISCARD_PILE.put(author, riichiDiscards);
+                PLAYER_ACROSS_DISCARD_PILE.put(author, acrossDiscards);
+                PLAYER_RIGHT_DISCARD_PILE.put(author, rightDiscards);
+                DEFENSE_WALL.put(author, wall);
+                TENPAI_TILES.put(author, tenpaiTiles);
+                event.getTextChannel().sendMessage("the player on your left declared riichi with: ").queue();
+                List<String> discardTile = new ArrayList<>();
+                discardTile.add(riichiDiscards.get(riichiDiscards.size() - 1));
+                StringBuilder outputMsg = convertToTileSequence(discardTile);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+
+                event.getTextChannel().sendMessage("your discard pile:").queue();
+                outputMsg = convertToTileSequence(ownDiscards);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+
+                event.getTextChannel().sendMessage("right player discard pile: ").queue();
+                outputMsg = convertToTileSequence(rightDiscards);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+
+                event.getTextChannel().sendMessage("across player discard pile: ").queue();
+                outputMsg = convertToTileSequence(acrossDiscards);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+
+                event.getTextChannel().sendMessage("left player's discard pile (declared riichi)").queue();
+                outputMsg = convertToTileSequence(riichiDiscards);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+                System.out.println(wonHand);
+                event.getTextChannel().sendMessage("your hand:").queue();
+                outputMsg = convertToHand(ownHand);
+                event.getTextChannel().sendMessage(outputMsg).queue();
+                event.getTextChannel().sendMessage("`[quit` to quit or `[d <tile>` to discard.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
             }
         }
     }
@@ -903,7 +1226,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public static List<String> generateWonHand() {
-        List<String> tiles = new ArrayList<>(WALL_TEMPLATE);
+        List<String> tiles = new ArrayList<>(WALL_TEMPLATE_NO_RED_FIVES);
         List<String> wonHand = new ArrayList<>();
         Random rand = new Random();
         int upperbound = 100;
@@ -962,6 +1285,56 @@ public class DiscordBot extends ListenerAdapter {
         tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 2) + '0');
         tmp += tile.charAt(1);
         return (tiles.contains(tmp));
+    }
+
+    public static void clearDefenseSession(String author) {
+        OWN_HAND.remove(author);
+        RIICHI_HAND.remove(author);
+        PLAYER_ACROSS_HAND.remove(author);
+        PLAYER_RIGHT_HAND.remove(author);
+        OWN_DISCARD_PILE.remove(author);
+        RIICHI_DISCARD_PILE.remove(author);
+        PLAYER_ACROSS_DISCARD_PILE.remove(author);
+        PLAYER_RIGHT_DISCARD_PILE.remove(author);
+        DEFENSE_WALL.remove(author);
+        TENPAI_TILES.remove(author);
+    }
+    public static StringBuilder convertToTileSequence(List<String> processedTiles) {
+        StringBuilder outputMsg = new StringBuilder();
+        for (int i = 0; i < processedTiles.size(); ++i) {
+            outputMsg.append("<:" + processedTiles.get(i) + ":" + tileids.get(processedTiles.get(i)) + ">");
+        }
+        return outputMsg;
+    }
+
+    // algorithm will discard any genbutsu if exists, otherwise will discard random tile in hand
+    public String getDefenseDiscard(String author, List<String> hand) {
+        List<String> genbutsu = new ArrayList<>();
+        String discard = "";
+        // starting from the eighth tile in riichi player's discards
+        for (int i = 7; i < RIICHI_DISCARD_PILE.get(author).size(); ++i) {
+            genbutsu.add(RIICHI_DISCARD_PILE.get(author).get(i));
+        }
+        // starting from the ninth tile in all other player's discards (including own)
+        for (int i = 8; i < OWN_DISCARD_PILE.get(author).size(); ++i) {
+            genbutsu.add(OWN_DISCARD_PILE.get(author).get(i));
+        }
+        for (int i = 8; i < PLAYER_RIGHT_DISCARD_PILE.get(author).size(); ++i) {
+            genbutsu.add(PLAYER_RIGHT_DISCARD_PILE.get(author).get(i));
+        }
+        for (int i = 8; i < PLAYER_ACROSS_DISCARD_PILE.get(author).size(); ++i) {
+            genbutsu.add(PLAYER_ACROSS_DISCARD_PILE.get(author).get(i));
+        }
+        // check hand to see if there is genbutsu
+        for (int i = 0; i < hand.size(); ++i) {
+            if (genbutsu.contains(hand.get(i))) {
+                return hand.get(i);
+            }
+        }
+        // if no genbutsu
+        List<String> tmp = new ArrayList<>(hand);
+        Collections.shuffle(tmp);
+        return tmp.get(0);
     }
     // implement draw tile function? where we keep track of all the tiles and draw them sequentially
     // make 4 starting hands + dora doable?
