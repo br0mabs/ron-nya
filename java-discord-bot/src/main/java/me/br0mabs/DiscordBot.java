@@ -361,7 +361,7 @@ public class DiscordBot extends ListenerAdapter {
             }
 
             // defense trainer continuation
-            else if (OWN_HAND.containsKey(author) && (messageSent.startsWith("[quit") || messageSent.startsWith("[d"))) {
+            else if (OWN_HAND.containsKey(author) && ((messageSent.startsWith("[quit") || messageSent.startsWith("[d")) && !messageSent.startsWith("viewdicsards"))) {
                 if (messageSent.startsWith("[quit")) {
                     event.getTextChannel().sendMessage("quit the defense simulator nya").queue();
                     clearDefenseSession(author);
@@ -503,7 +503,7 @@ public class DiscordBot extends ListenerAdapter {
                     checkWinHand.remove(checkWinHand.size() - 1);
                     // hand is generated to only be normal 4 sets and 1 pair
                     if (checkWinningHandNormal(checkWinHand)) {
-                        event.getTextChannel().sendMessage("tsumo nya! riichi'er won, but you didn't deal nya :sunglasses:").queue();
+                        event.getTextChannel().sendMessage("tsumo nya! riichi'er won, but you didn't deal in nya :sunglasses:").queue();
                         StringBuilder outputMsg = convertToHand(riichiHand);
                         event.getTextChannel().sendMessage("riichi'er's hand:").queue();
                         event.getTextChannel().sendMessage(outputMsg).queue();
@@ -535,7 +535,7 @@ public class DiscordBot extends ListenerAdapter {
                     event.getTextChannel().sendMessage("your hand:").queue();
                     StringBuilder ownHandParsed = convertToHand(ownHand);
                     event.getTextChannel().sendMessage(ownHandParsed).queue();
-                    event.getTextChannel().sendMessage("`[quit` to quit or `[d <tile>` to discard.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
+                    event.getTextChannel().sendMessage("`[quit` to quit, `[d <tile>` to discard, or `[viewdiscards` to view relevant discards..\nThere are " + wall.size() + " tiles left in the live wall.").queue();
 
                     // update everything in the map
                     OWN_HAND.put(author, ownHand);
@@ -549,6 +549,50 @@ public class DiscordBot extends ListenerAdapter {
                     DEFENSE_WALL.put(author, wall);
                     TENPAI_TILES.put(author, tenpaiTiles);
                 }
+            }
+            // shows all discards after riichi
+            else if (OWN_HAND.containsKey(author) && messageSent.startsWith("[viewdiscards")) {
+                // you
+                event.getTextChannel().sendMessage("your discard pile after riichi:").queue();
+                List<String> tiles = new ArrayList<>();
+                for (int i = 8; i < OWN_DISCARD_PILE.get(author).size(); ++i) {
+                    tiles.add(OWN_DISCARD_PILE.get(author).get(i));
+                }
+                if (tiles.isEmpty()) {
+                    event.getTextChannel().sendMessage("no discards after riichi").queue();
+                } else {
+                    event.getTextChannel().sendMessage(convertToTileSequence(tiles)).queue();
+                }
+                // right
+                event.getTextChannel().sendMessage("player to the right discard pile after riichi:").queue();
+                tiles.clear();
+                for (int i = 8; i < PLAYER_RIGHT_DISCARD_PILE.get(author).size(); ++i) {
+                    tiles.add(PLAYER_RIGHT_DISCARD_PILE.get(author).get(i));
+                }
+                if (tiles.isEmpty()) {
+                    event.getTextChannel().sendMessage("no discards after riichi").queue();
+                } else {
+                    event.getTextChannel().sendMessage(convertToTileSequence(tiles)).queue();
+                }
+                // across
+                event.getTextChannel().sendMessage("player across discard pile after riichi:").queue();
+                tiles.clear();
+                for (int i = 8; i < PLAYER_ACROSS_DISCARD_PILE.get(author).size(); ++i) {
+                    tiles.add(PLAYER_ACROSS_DISCARD_PILE.get(author).get(i));
+                }
+                if (tiles.isEmpty()) {
+                    event.getTextChannel().sendMessage("no discards after riichi").queue();
+                } else {
+                    event.getTextChannel().sendMessage(convertToTileSequence(tiles)).queue();
+                }
+                // riichi'er
+                event.getTextChannel().sendMessage("player to the left (riichi'er) **full** discard pile").queue();
+                tiles.clear();
+                for (int i = 0; i < RIICHI_DISCARD_PILE.get(author).size(); ++i) {
+                    tiles.add(RIICHI_DISCARD_PILE.get(author).get(i));
+                }
+                event.getTextChannel().sendMessage(convertToTileSequence(tiles)).queue();
+                event.getTextChannel().sendMessage("`[quit` to quit, `[d <tile>` to discard, or `[viewdiscards` to view relevant discards..\nThere are " + DEFENSE_WALL.get(author).size() + " tiles left in the live wall.").queue();
             }
             // [help command
             else if (messageSent.equals("[help")) {
@@ -582,6 +626,8 @@ public class DiscordBot extends ListenerAdapter {
                 eb.addField("[ronnya <@user>", "only works in vc and if u have perms :smiling_imp:", false);
 
                 eb.addField("[mahjonghandle", "wordle but for mahjong (note: all hands are menzentsumo because no yaku implemented yet, no chiitoitsu or thirteen orphans either (but you can guess them))", false);
+
+                eb.addField("[defensesim", "defense simulator where you defend against one player in riichi", false);
 
                 eb.setFooter("tsumo nya");
 
@@ -837,7 +883,7 @@ public class DiscordBot extends ListenerAdapter {
                 // fill in discards for riichi'er
                 List<String> furitenDiscards = new ArrayList<>();
                 List<String> riichiDiscards = new ArrayList<>();
-                while (riichiDiscards.size() < 6) {
+                while (riichiDiscards.size() < 8) {
                     String tile = wall.get(wall.size() - 1);
                     wall.remove(wall.size() - 1);
                     if (tenpaiTiles.contains(tile)) {
@@ -855,17 +901,17 @@ public class DiscordBot extends ListenerAdapter {
                 // discard tiles for opponents
                 List<String> acrossDiscards = new ArrayList<>();
                 List<String> rightDiscards = new ArrayList<>();
-                for (int i = 0; i < 6; ++i) {
+                for (int i = 0; i < 8; ++i) {
                     acrossDiscards.add(wall.get(wall.size() - 1));
                     wall.remove(wall.size() - 1);
                 }
-                for (int i = 0; i < 6; ++i) {
+                for (int i = 0; i < 8; ++i) {
                     rightDiscards.add(wall.get(wall.size() - 1));
                     wall.remove(wall.size() - 1);
                 }
                 // discard tiles for yourself
                 List<String> ownDiscards = new ArrayList<>();
-                for (int i = 0; i < 6; ++i) {
+                for (int i = 0; i < 8; ++i) {
                     ownDiscards.add(wall.get(wall.size() - 1));
                     wall.remove(wall.size() - 1);
                 }
@@ -912,7 +958,7 @@ public class DiscordBot extends ListenerAdapter {
                 event.getTextChannel().sendMessage("your hand:").queue();
                 outputMsg = convertToHand(ownHand);
                 event.getTextChannel().sendMessage(outputMsg).queue();
-                event.getTextChannel().sendMessage("`[quit` to quit or `[d <tile>` to discard.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
+                event.getTextChannel().sendMessage("`[quit` to quit, `[d <tile>` to discard, `[viewdiscards` to view relevant discards.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
             }
         }
     }
