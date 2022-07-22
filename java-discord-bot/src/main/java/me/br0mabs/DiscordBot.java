@@ -625,6 +625,8 @@ public class DiscordBot extends ListenerAdapter {
 
                 eb.addField("[ronnya <@user>", "only works in vc and if u have perms :smiling_imp:", false);
 
+                eb.addField("[tsumonya <@user>", "same thing as ronnya but tsumonya", false);
+
                 eb.addField("[mahjonghandle", "wordle but for mahjong (note: all hands are menzentsumo because no yaku implemented yet, no chiitoitsu or thirteen orphans either (but you can guess them))", false);
 
                 eb.addField("[defensesim", "defense simulator where you defend against one player in riichi", false);
@@ -777,16 +779,20 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
             // used on user in vc, moves them to another vc (which the bot joins, and then plays ronnya sfx to them before returning them to call)
-            else if (messageSent.startsWith("[ronnya")) {
+            else if (messageSent.startsWith("[ronnya") || messageSent.startsWith("[tsumonya")) {
                 if (!sender.hasPermission(VOICE_MOVE_OTHERS)) {
                     event.getTextChannel().sendMessage("not enough perms nya").queue();
                     return;
                 }
-                if (messageSent.length() < 9) {
+                boolean tsumo = messageSent.startsWith("[tsumonya");
+                if (messageSent.length() < 9 && messageSent.startsWith("[ronnya")) {
+                    event.getTextChannel().sendMessage("invalid user").queue();
+                    return;
+                } else if (messageSent.length() < 11 && messageSent.startsWith("[tsumonya")) {
                     event.getTextChannel().sendMessage("invalid user").queue();
                     return;
                 }
-                messageSent = messageSent.substring(8);
+                messageSent = messageSent.startsWith("[ronnya") ? messageSent.substring(8) : messageSent.substring(10);
                 messageSent = messageSent.substring(2, messageSent.length() - 1);
                 long id = 0;
                 try {
@@ -826,12 +832,21 @@ public class DiscordBot extends ListenerAdapter {
 
                 ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
                 audioManager.openAudioConnection(connectedChannel);
-                executorService.schedule(new Runnable() {
-                    public void run() {
-                        PlayerManager.getInstance()
-                                .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
-                    }
-                }, 1000, TimeUnit.MILLISECONDS);
+                if (tsumo) {
+                    executorService.schedule(new Runnable() {
+                        public void run() {
+                            PlayerManager.getInstance()
+                                    .loadAndPlay(channel, "D:\\discordbot\\audio files\\tsumonya.mp3");
+                        }
+                    }, 1000, TimeUnit.MILLISECONDS);
+                } else {
+                    executorService.schedule(new Runnable() {
+                        public void run() {
+                            PlayerManager.getInstance()
+                                    .loadAndPlay(channel, "D:\\discordbot\\audio files\\ronnya.mp3");
+                        }
+                    }, 1000, TimeUnit.MILLISECONDS);
+                }
 
                 final GuildVoiceState memberVoiceState = member.getVoiceState();
 
@@ -841,7 +856,6 @@ public class DiscordBot extends ListenerAdapter {
                         event.getGuild().getAudioManager().closeAudioConnection();
                     }
                 }, 2500, TimeUnit.MILLISECONDS);
-
             } else if (messageSent.startsWith("[mahjonghandle")) {
                 List<String> generatedHand = generateWonHand();
                 USERS_USING_MAHJONG_HANDLE.put(author, generatedHand);
