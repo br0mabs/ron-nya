@@ -631,7 +631,7 @@ public class DiscordBot extends ListenerAdapter {
 
                 eb.addField("[defensesim", "defense simulator where you defend against one player in riichi", false);
 
-                eb.addField("[roman", "displays roman's favourite anime girl", false);
+                eb.addField("[roman", "displays roman funny moments", false);
 
                 eb.setFooter("tsumo nya");
 
@@ -977,10 +977,11 @@ public class DiscordBot extends ListenerAdapter {
                 event.getTextChannel().sendMessage("`[quit` to quit, `[d <tile>` to discard, `[viewdiscards` to view relevant discards.\nThere are " + wall.size() + " tiles left in the live wall.").queue();
             }
             else if (messageSent.startsWith("[roman")) {
-                File file = new File("D:\\discordbot\\pictures\\romanexposed.png");
+                Random rd = new Random();
+                File file = new File("D:\\discordbot\\pictures\\romanexposed" + (rd.nextInt(7) + 1) + ".png");
                 event.getTextChannel().sendMessage(" ").addFile(file).queue();
                 Config roman = new Config();
-                event.getTextChannel().sendMessage(roman.getRomanId()).queue();
+                //event.getTextChannel().sendMessage(roman.getRomanId()).queue();
             }
         }
     }
