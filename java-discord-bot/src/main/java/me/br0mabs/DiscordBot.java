@@ -42,6 +42,10 @@ public class DiscordBot extends ListenerAdapter {
     public static Map<String,String> tileids = new HashMap<String,String>();
     public static List<String> WALL_TEMPLATE = new ArrayList<String>();
     public static List<String> WALL_TEMPLATE_NO_RED_FIVES = new ArrayList<String>();
+
+    public static List<String> ONLY_MANZU = new ArrayList<String>();
+    public static List<String> ONLY_PINZU = new ArrayList<String>();
+    public static List<String> ONLY_SOUZU = new ArrayList<String>();
     public static Map<String,List<String>> WALLS = new HashMap<String,List<String>>();
     public static Map<String,List<String>> HANDS = new HashMap<String,List<String>>();
     public static List<List<Integer>> COMBINATION_INDICES = new ArrayList<>();
@@ -62,6 +66,8 @@ public class DiscordBot extends ListenerAdapter {
 
     public static HashMap<String,List<String>> DEFENSE_WALL = new HashMap<>();
     public static HashMap<String,List<String>> TENPAI_TILES = new HashMap<>();
+
+    public static HashMap<String,List<String>> WAIT_TRAINER_USERS = new HashMap<>();
 
     public static long I_AM_DUMB_CHANNEL_ID = Long.parseLong("982820292881686528");
 
@@ -179,6 +185,31 @@ public class DiscordBot extends ListenerAdapter {
         char[] suits = {'m', 'p', 's', 'z'};
         for (int i = 0; i < 4; ++i) {
             for (int j = 1; j <= 9; ++j) {
+                if (i == 0) {
+                    String tmp = "";
+                    tmp += (char) (j + '0');
+                    tmp += suits[i];
+                    ONLY_MANZU.add(tmp);
+                    ONLY_MANZU.add(tmp);
+                    ONLY_MANZU.add(tmp);
+                    ONLY_MANZU.add(tmp);
+                } else if (i == 1) {
+                    String tmp = "";
+                    tmp += (char) (j + '0');
+                    tmp += suits[i];
+                    ONLY_PINZU.add(tmp);
+                    ONLY_PINZU.add(tmp);
+                    ONLY_PINZU.add(tmp);
+                    ONLY_PINZU.add(tmp);
+                } else if (i == 2) {
+                    String tmp = "";
+                    tmp += (char) (j + '0');
+                    tmp += suits[i];
+                    ONLY_SOUZU.add(tmp);
+                    ONLY_SOUZU.add(tmp);
+                    ONLY_SOUZU.add(tmp);
+                    ONLY_SOUZU.add(tmp);
+                }
                 if (i == 3 && j == 8) break;
                 for (int k = 1; k <= ((j == 5 && i != 3) ? 3 : 4); ++k) {
                     String tmp = "";
@@ -593,6 +624,40 @@ public class DiscordBot extends ListenerAdapter {
                 }
                 event.getTextChannel().sendMessage(convertToTileSequence(tiles)).queue();
                 event.getTextChannel().sendMessage("`[quit` to quit, `[d <tile>` to discard, or `[viewdiscards` to view relevant discards..\nThere are " + DEFENSE_WALL.get(author).size() + " tiles left in the live wall.").queue();
+            } else if (WAIT_TRAINER_USERS.containsKey(author) && messageSent.startsWith("[wait")) {
+                if (messageSent.length() < 7) {
+                    event.getTextChannel().sendMessage("enter valid tiles").queue();
+                    return;
+                }
+                messageSent = messageSent.substring(6);
+                List<String> tiles = parseTiles(messageSent);
+                if (tiles.contains("bad")) {
+                    event.getTextChannel().sendMessage("enter valid tiles").queue();
+                    return;
+                }
+                tiles.add("b");
+                tiles = sortHand(tiles);
+                tiles.remove(tiles.size() - 1);
+                StringBuilder seq = convertToTileSequence(tiles);
+                event.getTextChannel().sendMessage("your inputted waits:").queue();
+                event.getTextChannel().sendMessage(seq).queue();
+                StringBuilder hand = convertToTileSequence(WAIT_TRAINER_USERS.get(author));
+                event.getTextChannel().sendMessage("the actual waits: ").queue();
+                event.getTextChannel().sendMessage(hand).queue();
+                if (tiles.size() != WAIT_TRAINER_USERS.get(author).size()) {
+                    event.getTextChannel().sendMessage("better luck next time nya!").queue();
+                    WAIT_TRAINER_USERS.remove(author);
+                } else {
+                    for (int i = 0; i < tiles.size(); ++ i) {
+                        if (!tiles.get(i).equals(WAIT_TRAINER_USERS.get(author).get(i))) {
+                            event.getTextChannel().sendMessage("better luck next time nya!").queue();
+                            WAIT_TRAINER_USERS.remove(author);
+                            return;
+                        }
+                    }
+                    event.getTextChannel().sendMessage("you chose the correct waits nya!").queue();
+                    WAIT_TRAINER_USERS.remove(author);
+                }
             }
             // [help command
             else if (messageSent.equals("[help")) {
@@ -632,6 +697,8 @@ public class DiscordBot extends ListenerAdapter {
                 eb.addField("[defensesim", "defense simulator where you defend against one player in riichi", false);
 
                 eb.addField("[roman", "displays roman funny moments", false);
+
+                eb.addField("[waittrainer", "tests your skill at wait detection", false);
 
                 eb.setFooter("tsumo nya");
 
@@ -978,10 +1045,34 @@ public class DiscordBot extends ListenerAdapter {
             }
             else if (messageSent.startsWith("[roman")) {
                 Random rd = new Random();
-                File file = new File("D:\\discordbot\\pictures\\romanexposed" + (rd.nextInt(7) + 1) + ".png");
+                File file = new File("D:\\discordbot\\pictures\\romanexposed" + (rd.nextInt(12) + 1) + ".png");
                 event.getTextChannel().sendMessage(" ").addFile(file).queue();
                 Config roman = new Config();
                 //event.getTextChannel().sendMessage(roman.getRomanId()).queue();
+            }
+            else if (messageSent.startsWith("[waittrainer")) {
+                List<String> tiles = generateTenpaiHandOneSuit();
+                List<String> tmptiles = new ArrayList<>(tiles);
+                List<String> waits = checkTenpai(tmptiles);
+                waits.add("e");
+                waits = sortHand(waits);
+                waits.remove(waits.size() - 1);
+                List<String> removals = new ArrayList<String>();
+                // remove any tiles that are impossible to wait on
+                for (String s : waits) {
+                    if (Collections.frequency(tiles, s) == 4) {
+                        removals.add(s);
+                    }
+                }
+                for (String s : removals) {
+                    waits.remove(s);
+                }
+                // now insert everything into hashmap
+                WAIT_TRAINER_USERS.put(author, waits);
+                StringBuilder hand = convertToTileSequence(tiles);
+                event.getTextChannel().sendMessage("here is the hand nya").queue();
+                event.getTextChannel().sendMessage(hand).queue();
+                event.getTextChannel().sendMessage("enter `[wait <wait>` as a tile sequence to check").queue();
             }
         }
     }
@@ -1341,6 +1432,64 @@ public class DiscordBot extends ListenerAdapter {
         // now we should randomize the hand and then sort the hand
         Collections.shuffle(wonHand);
         wonHand = sortHand(wonHand);
+        return wonHand;
+    }
+
+    public static List<String> generateTenpaiHandOneSuit() {
+        Random rand1 = new Random();
+        int typ = rand1.nextInt(3);
+        List<String> tiles;
+        if (typ == 0) tiles = new ArrayList<>(ONLY_MANZU);
+        else if (typ == 1) tiles = new ArrayList<>(ONLY_PINZU);
+        else tiles = new ArrayList<>(ONLY_SOUZU);
+        List<String> wonHand = new ArrayList<>();
+        Random rand = new Random();
+        int upperbound = 100;
+        // attempt to generate a completed set
+        for (int i = 1; i <= 4; ++i) {
+            int int_random = rand.nextInt(upperbound);
+            // try to make a triple
+            if (int_random >= 85) {
+                String tile = tiles.get(rand.nextInt(tiles.size()));
+                while (Collections.frequency(tiles, tile) < 3) {
+                    tile = tiles.get(rand.nextInt(tiles.size()));
+                }
+                // triple has been formed, now we delete
+                tiles.remove(tile); tiles.remove(tile); tiles.remove(tile);
+                wonHand.add(tile); wonHand.add(tile); wonHand.add(tile);
+            }
+            // now here we do sequences (note that we cannot use honour tiles, or 8 and 9)
+            else {
+                String tile = tiles.get(rand.nextInt(tiles.size()));
+                // first part of while statement check checks for invalid sequence starters
+                // second part (if passed), checks if it is possible given number of tiles remaining
+                while ((tile.charAt(0) == '9' || tile.charAt(0) == '8' || tile.charAt(1) == 'z' || tile.charAt(0) == '0') || (!checkPossibleSequence(tile, tiles))) {
+                    tile = tiles.get(rand.nextInt(tiles.size()));
+                }
+                tiles.remove(tile); wonHand.add(tile);
+                String tmp = "";
+                tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 1) + '0');
+                tmp += tile.charAt(1);
+                tiles.remove(tmp); wonHand.add(tmp);
+                tmp = "";
+                tmp += (char)((Character.getNumericValue(tile.charAt(0)) + 2) + '0');
+                tmp += tile.charAt(1);
+                tiles.remove(tmp); wonHand.add(tmp);
+            }
+        }
+        // now add a pair
+        String tile = tiles.get(rand.nextInt(tiles.size()));
+        while (Collections.frequency(tiles, tile) < 2) {
+            tile = tiles.get(rand.nextInt(tiles.size()));
+        }
+        tiles.remove(tile); tiles.remove(tile);
+        wonHand.add(tile); wonHand.add(tile);
+        // now we should randomize the hand, remove a tile, and then sort the hand
+        Collections.shuffle(wonHand);
+        wonHand.remove(wonHand.size() - 1);
+        wonHand.add("b");
+        wonHand = sortHand(wonHand);
+        wonHand.remove(wonHand.size() - 1);
         return wonHand;
     }
 
