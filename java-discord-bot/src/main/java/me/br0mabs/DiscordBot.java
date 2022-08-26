@@ -40,6 +40,9 @@ import static net.dv8tion.jda.api.utils.MemberCachePolicy.PENDING;
 public class DiscordBot extends ListenerAdapter {
 
     public static Map<String,String> tileids = new HashMap<String,String>();
+    public static List<List<Integer>> possible_combinations = new ArrayList<>();
+    public static Map<List<Integer>,List<Integer>> scores_nondealertsumo = new HashMap<>();
+    public static Map<List<Integer>,Integer> other_scores = new HashMap<>();
     public static List<String> WALL_TEMPLATE = new ArrayList<String>();
     public static List<String> WALL_TEMPLATE_NO_RED_FIVES = new ArrayList<String>();
 
@@ -68,6 +71,8 @@ public class DiscordBot extends ListenerAdapter {
     public static HashMap<String,List<String>> TENPAI_TILES = new HashMap<>();
 
     public static HashMap<String,List<String>> WAIT_TRAINER_USERS = new HashMap<>();
+
+    public static HashMap<String,List<Integer>> SCORE_TRAINER_USERS = new HashMap<>();
 
     public static long I_AM_DUMB_CHANNEL_ID = Long.parseLong("982820292881686528");
 
@@ -226,6 +231,718 @@ public class DiscordBot extends ListenerAdapter {
         WALL_TEMPLATE_NO_RED_FIVES.add("5m");
         WALL_TEMPLATE_NO_RED_FIVES.add("5p");
         WALL_TEMPLATE_NO_RED_FIVES.add("5s");
+
+        // add possible scores (ron/tsumo as well)
+        // {han, fu, win condition, dealer/non-dealer}
+        // 0 = tsumo, 1 = ron
+        // 0 = non-dealer, 1 = dealer
+
+        List<Integer> tmp = new ArrayList<>();
+        List<Integer> tsumoScores = new ArrayList<>();
+
+        // 1 han 30 non-dealer tsumo
+        tmp.add(1); tmp.add(30); tmp.add(0); tmp.add(0);
+        tsumoScores.add(300); tsumoScores.add(500);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 30 non-dealer ron
+        tmp.add(1); tmp.add(30); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1000);
+        tmp = new ArrayList<>();
+
+        // 1 han 30 dealer tsumo
+        tmp.add(1); tmp.add(30); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 500);
+        tmp = new ArrayList<>();
+
+        // 1 han 30 dealer ron
+        tmp.add(1); tmp.add(30); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1500);
+        tmp = new ArrayList<>();
+
+        // 1 han 40 non-dealer tsumo
+        tmp.add(1); tmp.add(40); tmp.add(0); tmp.add(0);
+        tsumoScores.add(400); tsumoScores.add(700);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 40 non-dealer ron
+        tmp.add(1); tmp.add(40); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1300);
+        tmp = new ArrayList<>();
+
+        // 1 han 40 dealer tsumo
+        tmp.add(1); tmp.add(40); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 700);
+        tmp = new ArrayList<>();
+
+        // 1 han 40 dealer ron
+        tmp.add(1); tmp.add(40); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2000);
+        tmp = new ArrayList<>();
+
+        // 1 han 50 non-dealer tsumo
+        tmp.add(1); tmp.add(50); tmp.add(0); tmp.add(0);
+        tsumoScores.add(400); tsumoScores.add(800);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 50 non-dealer ron
+        tmp.add(1); tmp.add(50); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1600);
+        tmp = new ArrayList<>();
+
+        // 1 han 50 dealer tsumo
+        tmp.add(1); tmp.add(50); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 800);
+        tmp = new ArrayList<>();
+
+        // 1 han 50 dealer ron
+        tmp.add(1); tmp.add(50); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2400);
+        tmp = new ArrayList<>();
+
+        // 1 han 60 non-dealer tsumo
+        tmp.add(1); tmp.add(60); tmp.add(0); tmp.add(0);
+        tsumoScores.add(500); tsumoScores.add(1000);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 60 non-dealer ron
+        tmp.add(1); tmp.add(60); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2000);
+        tmp = new ArrayList<>();
+
+        // 1 han 60 dealer tsumo
+        tmp.add(1); tmp.add(60); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1000);
+        tmp = new ArrayList<>();
+
+        // 1 han 60 dealer ron
+        tmp.add(1); tmp.add(60); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2900);
+        tmp = new ArrayList<>();
+
+        // 1 han 70 non-dealer tsumo
+        tmp.add(1); tmp.add(70); tmp.add(0); tmp.add(0);
+        tsumoScores.add(600); tsumoScores.add(1200);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 70 non-dealer ron
+        tmp.add(1); tmp.add(70); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2300);
+        tmp = new ArrayList<>();
+
+        // 1 han 70 dealer tsumo
+        tmp.add(1); tmp.add(70); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1200);
+        tmp = new ArrayList<>();
+
+        // 1 han 70 dealer ron
+        tmp.add(1); tmp.add(70); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3400);
+        tmp = new ArrayList<>();
+
+        // 1 han 80 non-dealer tsumo
+        tmp.add(1); tmp.add(80); tmp.add(0); tmp.add(0);
+        tsumoScores.add(700); tsumoScores.add(1300);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 80 non-dealer ron
+        tmp.add(1); tmp.add(80); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2600);
+        tmp = new ArrayList<>();
+
+        // 1 han 80 dealer tsumo
+        tmp.add(1); tmp.add(80); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1300);
+        tmp = new ArrayList<>();
+
+        // 1 han 80 dealer ron
+        tmp.add(1); tmp.add(80); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 1 han 90 non-dealer tsumo
+        tmp.add(1); tmp.add(90); tmp.add(0); tmp.add(0);
+        tsumoScores.add(800); tsumoScores.add(1500);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 90 non-dealer ron
+        tmp.add(1); tmp.add(90); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2900);
+        tmp = new ArrayList<>();
+
+        // 1 han 90 dealer tsumo
+        tmp.add(1); tmp.add(90); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1500);
+        tmp = new ArrayList<>();
+
+        // 1 han 90 dealer ron
+        tmp.add(1); tmp.add(90); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 4400);
+        tmp = new ArrayList<>();
+
+        // 1 han 100 non-dealer tsumo
+        tmp.add(1); tmp.add(100); tmp.add(0); tmp.add(0);
+        tsumoScores.add(800); tsumoScores.add(1600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 100 non-dealer ron
+        tmp.add(1); tmp.add(100); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 1 han 100 dealer tsumo
+        tmp.add(1); tmp.add(100); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1600);
+        tmp = new ArrayList<>();
+
+        // 1 han 100 dealer ron
+        tmp.add(1); tmp.add(100); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 4800);
+        tmp = new ArrayList<>();
+
+        // 1 han 110 non-dealer tsumo
+        tmp.add(1); tmp.add(110); tmp.add(0); tmp.add(0);
+        tsumoScores.add(900); tsumoScores.add(1800);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 1 han 110 non-dealer ron
+        tmp.add(1); tmp.add(110); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3600);
+        tmp = new ArrayList<>();
+
+        // 1 han 110 dealer tsumo
+        tmp.add(1); tmp.add(110); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1800);
+        tmp = new ArrayList<>();
+
+        // 1 han 110 dealer ron
+        tmp.add(1); tmp.add(110); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5300);
+        tmp = new ArrayList<>();
+
+        // 2 han 20 non-dealer tsumo
+        tmp.add(2); tmp.add(20); tmp.add(0); tmp.add(0);
+        tsumoScores.add(400); tsumoScores.add(700);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 20 dealer tsumo
+        tmp.add(2); tmp.add(20); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 700);
+        tmp = new ArrayList<>();
+
+        // 2 han 25 non-dealer ron
+        tmp.add(2); tmp.add(25); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1600);
+        tmp = new ArrayList<>();
+
+        // 2 han 25 dealer ron
+        tmp.add(2); tmp.add(25); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2400);
+        tmp = new ArrayList<>();
+
+        // 2 han 30 non-dealer tsumo
+        tmp.add(2); tmp.add(30); tmp.add(0); tmp.add(0);
+        tsumoScores.add(500); tsumoScores.add(1000);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 30 non-dealer ron
+        tmp.add(2); tmp.add(30); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2000);
+        tmp = new ArrayList<>();
+
+        // 2 han 30 dealer tsumo
+        tmp.add(2); tmp.add(30); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1000);
+        tmp = new ArrayList<>();
+
+        // 2 han 30 dealer ron
+        tmp.add(2); tmp.add(30); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2900);
+        tmp = new ArrayList<>();
+
+        // 2 han 40 non-dealer tsumo
+        tmp.add(2); tmp.add(40); tmp.add(0); tmp.add(0);
+        tsumoScores.add(700); tsumoScores.add(1300);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 40 non-dealer ron
+        tmp.add(2); tmp.add(40); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2600);
+        tmp = new ArrayList<>();
+
+        // 2 han 40 dealer tsumo
+        tmp.add(2); tmp.add(40); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1300);
+        tmp = new ArrayList<>();
+
+        // 2 han 40 dealer ron
+        tmp.add(2); tmp.add(40); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 2 han 50 non-dealer tsumo
+        tmp.add(2); tmp.add(50); tmp.add(0); tmp.add(0);
+        tsumoScores.add(800); tsumoScores.add(1600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 50 non-dealer ron
+        tmp.add(2); tmp.add(50); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 2 han 50 dealer tsumo
+        tmp.add(2); tmp.add(50); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1600);
+        tmp = new ArrayList<>();
+
+        // 2 han 50 dealer ron
+        tmp.add(2); tmp.add(50); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 4800);
+        tmp = new ArrayList<>();
+
+        // 2 han 60 non-dealer tsumo
+        tmp.add(2); tmp.add(60); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1000); tsumoScores.add(2000);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 60 non-dealer ron
+        tmp.add(2); tmp.add(60); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 2 han 60 dealer tsumo
+        tmp.add(2); tmp.add(60); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2000);
+        tmp = new ArrayList<>();
+
+        // 2 han 60 dealer ron
+        tmp.add(2); tmp.add(60); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5800);
+        tmp = new ArrayList<>();
+
+        // 2 han 70 non-dealer tsumo
+        tmp.add(2); tmp.add(70); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1200); tsumoScores.add(2300);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 70 non-dealer ron
+        tmp.add(2); tmp.add(70); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 4500);
+        tmp = new ArrayList<>();
+
+        // 2 han 70 dealer tsumo
+        tmp.add(2); tmp.add(70); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2300);
+        tmp = new ArrayList<>();
+
+        // 2 han 70 dealer ron
+        tmp.add(2); tmp.add(70); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 6800);
+        tmp = new ArrayList<>();
+
+        // 2 han 80 non-dealer tsumo
+        tmp.add(2); tmp.add(80); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1300); tsumoScores.add(2600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 80 non-dealer ron
+        tmp.add(2); tmp.add(80); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5200);
+        tmp = new ArrayList<>();
+
+        // 2 han 80 dealer tsumo
+        tmp.add(2); tmp.add(80); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2600);
+        tmp = new ArrayList<>();
+
+        // 2 han 80 dealer ron
+        tmp.add(2); tmp.add(80); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 7700);
+        tmp = new ArrayList<>();
+
+        // 2 han 90 non-dealer tsumo
+        tmp.add(2); tmp.add(90); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1500); tsumoScores.add(2900);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 90 non-dealer ron
+        tmp.add(2); tmp.add(90); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5800);
+        tmp = new ArrayList<>();
+
+        // 2 han 90 dealer tsumo
+        tmp.add(2); tmp.add(90); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2900);
+        tmp = new ArrayList<>();
+
+        // 2 han 90 dealer ron
+        tmp.add(2); tmp.add(90); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 8700);
+        tmp = new ArrayList<>();
+
+        // 2 han 100 non-dealer tsumo
+        tmp.add(2); tmp.add(100); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1600); tsumoScores.add(3200);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 100 non-dealer ron
+        tmp.add(2); tmp.add(100); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 6400);
+        tmp = new ArrayList<>();
+
+        // 2 han 100 dealer tsumo
+        tmp.add(2); tmp.add(100); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 2 han 100 dealer ron
+        tmp.add(2); tmp.add(100); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 9600);
+        tmp = new ArrayList<>();
+
+        // 2 han 110 non-dealer tsumo
+        tmp.add(2); tmp.add(110); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1800); tsumoScores.add(3600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 2 han 110 non-dealer ron
+        tmp.add(2); tmp.add(110); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 7100);
+        tmp = new ArrayList<>();
+
+        // 2 han 110 dealer tsumo
+        tmp.add(2); tmp.add(110); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3600);
+        tmp = new ArrayList<>();
+
+        // 2 han 100 dealer ron
+        tmp.add(2); tmp.add(110); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 10600);
+        tmp = new ArrayList<>();
+
+        // 3 han 20 non-dealer tsumo
+        tmp.add(3); tmp.add(20); tmp.add(0); tmp.add(0);
+        tsumoScores.add(700); tsumoScores.add(1300);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 20 dealer tsumo
+        tmp.add(3); tmp.add(20); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1300);
+        tmp = new ArrayList<>();
+
+        // 3 han 25 non-dealer tsumo
+        tmp.add(3); tmp.add(25); tmp.add(0); tmp.add(0);
+        tsumoScores.add(800); tsumoScores.add(1600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 25 non-dealer ron
+        tmp.add(3); tmp.add(25); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 3 han 25 dealer tsumo
+        tmp.add(3); tmp.add(25); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 1600);
+        tmp = new ArrayList<>();
+
+        // 3 han 25 dealer ron
+        tmp.add(3); tmp.add(25); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 4800);
+        tmp = new ArrayList<>();
+
+        // 3 han 30 non-dealer tsumo
+        tmp.add(3); tmp.add(30); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1000); tsumoScores.add(2000);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 30 non-dealer ron
+        tmp.add(3); tmp.add(30); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 3 han 30 dealer tsumo
+        tmp.add(3); tmp.add(30); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2000);
+        tmp = new ArrayList<>();
+
+        // 3 han 30 dealer ron
+        tmp.add(3); tmp.add(30); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5800);
+        tmp = new ArrayList<>();
+
+        // 3 han 40 non-dealer tsumo
+        tmp.add(3); tmp.add(40); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1300); tsumoScores.add(2600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 40 non-dealer ron
+        tmp.add(3); tmp.add(40); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 5200);
+        tmp = new ArrayList<>();
+
+        // 3 han 40 dealer tsumo
+        tmp.add(3); tmp.add(40); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2600);
+        tmp = new ArrayList<>();
+
+        // 3 han 40 dealer ron
+        tmp.add(3); tmp.add(40); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 7700);
+        tmp = new ArrayList<>();
+
+        // 3 han 50 non-dealer tsumo
+        tmp.add(3); tmp.add(50); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1600); tsumoScores.add(3200);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 50 non-dealer ron
+        tmp.add(3); tmp.add(50); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 6400);
+        tmp = new ArrayList<>();
+
+        // 3 han 50 dealer tsumo
+        tmp.add(3); tmp.add(50); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 3 han 50 dealer ron
+        tmp.add(3); tmp.add(50); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 9600);
+        tmp = new ArrayList<>();
+
+        // 3 han 60 non-dealer tsumo
+        tmp.add(3); tmp.add(60); tmp.add(0); tmp.add(0);
+        tsumoScores.add(2000); tsumoScores.add(3900);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 3 han 60 non-dealer ron
+        tmp.add(3); tmp.add(60); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 7700);
+        tmp = new ArrayList<>();
+
+        // 3 han 60 dealer tsumo
+        tmp.add(3); tmp.add(60); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 3 han 60 dealer ron
+        tmp.add(3); tmp.add(60); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 11600);
+        tmp = new ArrayList<>();
+
+        // 4 han 20 non-dealer tsumo
+        tmp.add(4); tmp.add(20); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1300); tsumoScores.add(2600);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 4 han 20 dealer tsumo
+        tmp.add(4); tmp.add(20); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 2600);
+        tmp = new ArrayList<>();
+
+        // 4 han 25 non-dealer tsumo
+        tmp.add(4); tmp.add(25); tmp.add(0); tmp.add(0);
+        tsumoScores.add(1600); tsumoScores.add(3200);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 4 han 25 non-dealer ron
+        tmp.add(4); tmp.add(25); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 6400);
+        tmp = new ArrayList<>();
+
+        // 4 han 25 dealer tsumo
+        tmp.add(4); tmp.add(25); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3200);
+        tmp = new ArrayList<>();
+
+        // 4 han 25 dealer ron
+        tmp.add(4); tmp.add(25); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 9600);
+        tmp = new ArrayList<>();
+
+        // 4 han 30 non-dealer tsumo
+        tmp.add(4); tmp.add(30); tmp.add(0); tmp.add(0);
+        tsumoScores.add(2000); tsumoScores.add(3900);
+        possible_combinations.add(tmp);
+        scores_nondealertsumo.put(tmp, tsumoScores);
+        tmp = new ArrayList<>();
+        tsumoScores = new ArrayList<>();
+
+        // 4 han 30 non-dealer ron
+        tmp.add(4); tmp.add(30); tmp.add(1); tmp.add(0);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 7700);
+        tmp = new ArrayList<>();
+
+        // 4 han 30 dealer tsumo
+        tmp.add(4); tmp.add(30); tmp.add(0); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 3900);
+        tmp = new ArrayList<>();
+
+        // 4 han 30 dealer ron
+        tmp.add(4); tmp.add(30); tmp.add(1); tmp.add(1);
+        possible_combinations.add(tmp);
+        other_scores.put(tmp, 11600);
+        tmp = new ArrayList<>();
 
         Config config = new Config();
         JDA bot = JDABuilder.createDefault(config.getToken())
@@ -391,6 +1108,54 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
 
+            // score trainer continuation
+            else if (SCORE_TRAINER_USERS.containsKey(author) && messageSent.startsWith("[score")) {
+                if (messageSent.length() < 8) {
+                    event.getTextChannel().sendMessage("enter a valid score").queue();
+                }
+                messageSent = messageSent.substring(7);
+                // non-non-dealer tsumo
+                if (SCORE_TRAINER_USERS.get(author).get(2) != 0 || SCORE_TRAINER_USERS.get(author).get(3) != 0) {
+                    int userScore;
+                    try {
+                        userScore = Integer.parseInt(messageSent);
+                    } catch (Exception NumberFormatException) {
+                        event.getTextChannel().sendMessage("enter a valid score").queue();
+                        return;
+                    }
+                    if (userScore == other_scores.get(SCORE_TRAINER_USERS.get(author))) {
+                        event.getTextChannel().sendMessage("correct score nya").queue();
+                    } else {
+                        event.getTextChannel().sendMessage("wrong score get better nya").queue();
+                        event.getTextChannel().sendMessage("the correct score was " + other_scores.get(SCORE_TRAINER_USERS.get(author))).queue();
+                    }
+                    SCORE_TRAINER_USERS.remove(author);
+                }
+                // non-dealer tsumo case
+                else {
+                    int score1, score2;
+                    String[] tmpsplit = messageSent.split("\\s+");
+                    try {
+                        score1 = Integer.parseInt(tmpsplit[0]);
+                    } catch (Exception NumberFormatException) {
+                        event.getTextChannel().sendMessage("enter a valid score").queue();
+                        return;
+                    }
+                    try {
+                        score2 = Integer.parseInt(tmpsplit[1]);
+                    } catch (Exception NumberFormatException) {
+                        event.getTextChannel().sendMessage("enter a valid score").queue();
+                        return;
+                    }
+                    if (score1 == scores_nondealertsumo.get(SCORE_TRAINER_USERS.get(author)).get(0) && score2 == scores_nondealertsumo.get(SCORE_TRAINER_USERS.get(author)).get(1)) {
+                        event.getTextChannel().sendMessage("correct score nya").queue();
+                    } else {
+                        event.getTextChannel().sendMessage("wrong score get better nya").queue();
+                        event.getTextChannel().sendMessage("the correct scores were " + scores_nondealertsumo.get(SCORE_TRAINER_USERS.get(author)).get(0) + " " + scores_nondealertsumo.get(SCORE_TRAINER_USERS.get(author)).get(1)).queue();
+                    }
+                    SCORE_TRAINER_USERS.remove(author);
+                }
+            }
             // defense trainer continuation
             else if (OWN_HAND.containsKey(author) && ((messageSent.startsWith("[quit") || messageSent.startsWith("[d")) && !messageSent.startsWith("viewdicsards"))) {
                 if (messageSent.startsWith("[quit")) {
@@ -699,6 +1464,8 @@ public class DiscordBot extends ListenerAdapter {
                 eb.addField("[roman", "displays roman funny moments", false);
 
                 eb.addField("[waittrainer", "tests your skill at wait detection", false);
+
+                eb.addField("[scoretrainer", "tests your skill at scoring", false);
 
                 eb.setFooter("tsumo nya");
 
@@ -1073,6 +1840,16 @@ public class DiscordBot extends ListenerAdapter {
                 event.getTextChannel().sendMessage("here is the hand nya").queue();
                 event.getTextChannel().sendMessage(hand).queue();
                 event.getTextChannel().sendMessage("enter `[wait <wait>` as a tile sequence to check").queue();
+            }
+            else if (messageSent.equals("[scoretrainer")) {
+                // pick one at random
+                Random rand = new Random();
+                int idx = rand.nextInt(possible_combinations.size());
+                String tmp1 = possible_combinations.get(idx).get(2) == 0 ? "tsumo" : "ron";
+                String tmp2 = possible_combinations.get(idx).get(3) == 0 ? "non-dealer" : "dealer";
+                event.getTextChannel().sendMessage(possible_combinations.get(idx).get(0) + " han " + possible_combinations.get(idx).get(1) + " fu " + tmp1 + " " + tmp2).queue();
+                event.getTextChannel().sendMessage("enter `[score <score>`, if non-dealer tsumo enter smaller score then larger score, ex. 300 500").queue();
+                SCORE_TRAINER_USERS.put(author, possible_combinations.get(idx));
             }
         }
     }
